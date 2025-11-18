@@ -16,6 +16,11 @@ export default function Dashboard() {
   const [message, setMessage] = useState("");
   const [timeLeft, setTimeLeft] = useState(600);
 
+  // NEW: live news, freeze state, and round
+  const [liveNews, setLiveNews] = useState([]);
+  const [isFrozen, setIsFrozen] = useState(false);
+  const [round, setRound] = useState(1);
+
   // Timer (client-side UI countdown; keep server-timed for game logic)
   useEffect(() => {
     const timer = setInterval(() => setTimeLeft((t) => (t <= 0 ? 600 : t - 1)), 1000);
@@ -36,19 +41,23 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
     const userRef = ref(db, `users/${user.uid}`);
-    const unsubscribe = onValue(userRef, (snap) => {
-      const data = snap.val();
-      if (data) {
-        setUserData({ ...data, name: data.name || user.email?.split("@")[0] || "Player" });
-      } else {
-        // Defensive: create base user doc
-        set(userRef, { cash: 100000, holdings: {}, name: user.email?.split("@")[0] || "Player" }).catch((err) => {
-          console.error("Error creating user doc:", err);
-        });
+    const unsubscribe = onValue(
+      userRef,
+      (snap) => {
+        const data = snap.val();
+        if (data) {
+          setUserData({ ...data, name: data.name || user.email?.split("@")[0] || "Player" });
+        } else {
+          // Defensive: create base user doc
+          set(userRef, { cash: 100000, holdings: {}, name: user.email?.split("@")[0] || "Player" }).catch((err) => {
+            console.error("Error creating user doc:", err);
+          });
+        }
+      },
+      (err) => {
+        console.error("User data listener error:", err);
       }
-    }, (err) => {
-      console.error("User data listener error:", err);
-    });
+    );
 
     return () => unsubscribe();
   }, [user]);
@@ -56,14 +65,63 @@ export default function Dashboard() {
   // Load stocks
   useEffect(() => {
     const stocksRef = ref(db, "stocks");
-    const unsubscribe = onValue(stocksRef, (snap) => {
-      const data = snap.val();
-      if (data) setStocks(data);
-    }, (err) => {
-      console.error("Stocks listener error:", err);
-    });
+    const unsubscribe = onValue(
+      stocksRef,
+      (snap) => {
+        const data = snap.val();
+        if (data) setStocks(data);
+      },
+      (err) => {
+        console.error("Stocks listener error:", err);
+      }
+    );
     return () => unsubscribe();
   }, []);
+
+  // LIVE NEWS TICKER — FIXED TO READ NEW FORMAT (REPLACED)
+  useEffect(() => {
+    const newsRef = ref(db, "liveNews");
+    const unsub = onValue(newsRef, (snap) => {
+      const data = snap.val();
+      if (!data) {
+        setLiveNews([]);
+        return;
+      }
+
+      const newsArray = Object.values(data)
+        .filter((n) => n.newsTriggered === true) // ← ONLY SHOW WHEN NEWS IS TRIGGERED
+        .sort((a, b) => (b.newsTriggerTime || b.timestamp || 0) - (a.newsTriggerTime || a.timestamp || 0));
+
+      setLiveNews(newsArray);
+    });
+
+    return () => unsub();
+  }, []);
+
+  // Keep frozen and round listeners in their own effect
+  useEffect(() => {
+    const frozenRef = ref(db, "game/frozen");
+    const roundRef = ref(db, "round/current");
+
+    const unsubFrozen = onValue(frozenRef, (snap) => {
+      setIsFrozen(snap.val() === true);
+    }, (err) => console.error("frozen listener error:", err));
+
+    const unsubRound = onValue(roundRef, (snap) => {
+      setRound(snap.val() || 1);
+    }, (err) => console.error("round listener error:", err));
+
+    return () => {
+      unsubFrozen();
+      unsubRound();
+    };
+  }, []);
+
+  // Prepare ticker text
+  const latestNews = liveNews[0];
+  const newsText = latestNews
+    ? `${latestNews.severity?.toUpperCase() || "BREAKING"}: ${latestNews.text}`
+    : "Market stable • Waiting for next event...";
 
   const portfolioValue =
     (userData?.cash || 0) +
@@ -75,6 +133,12 @@ export default function Dashboard() {
   // Robust, atomic trade handler (BUY / SELL)
   const handleTrade = async (type) => {
     setMessage("");
+
+    // NEW: respect admin freeze
+    if (isFrozen) {
+      setMessage("TRADING IS FROZEN BY ADMIN");
+      return;
+    }
 
     try {
       // Basic guards
@@ -140,7 +204,7 @@ export default function Dashboard() {
       });
 
       // If transaction succeeded
-      setMessage(`${type === "BUY" ? "BOUGHT" : "SOLD"} ${qty} × ${selectedStock} @ ₹${currentPrice.toFixed(2)}`);
+      setMessage(`${type === "BUY" ? "BOUGHT" : "SOLD"} ${Math.floor(Number(quantity))} × ${selectedStock} @ ₹${currentPrice.toFixed(2)}`);
       setQuantity("");
       // Optional celebration:
       // confetti({ particleCount: 200, spread: 70, origin: { y: 0.6 } });
@@ -168,12 +232,9 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-black text-white p-10">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-12">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-6xl font-bold">FIC Stock Exchange</h1>
-          <div className="text-center">
-            <div className="text-7xl font-bold text-red-500">{formatTime(timeLeft)}</div>
-            <p className="text-3xl">Round 1 • Live</p>
-          </div>
+
           <div className="text-right">
             <p className="text-3xl font-bold text-[#C0C0C0] mb-4">{userData.name}</p>
             <button
@@ -182,6 +243,25 @@ export default function Dashboard() {
             >
               Logout
             </button>
+          </div>
+        </div>
+
+        {/* NEW: Marquee / Ticker */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-7xl font-bold text-red-500">{formatTime(timeLeft)}</div>
+              <p className="text-4xl font-bold text-purple-400 mt-4">ROUND {round} • LIVE</p>
+            </div>
+
+            <div className="w-1/2">
+              <div className="bg-gradient-to-r from-red-700 via-orange-600 to-red-700 py-5 overflow-hidden border-y-4 border-red-500 shadow-2xl rounded-xl">
+                <div className="animate-marquee whitespace-nowrap text-3xl md:text-5xl font-black tracking-wider">
+                  <span className="mx-16">{newsText}</span>
+                  <span className="mx-16">{newsText}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
