@@ -8,6 +8,8 @@ import {
   TrendingDown, 
   ArrowUpRight, 
   ArrowDownRight,
+  ArrowUp,
+  ArrowDown,
   Wallet,
   BarChart3,
   PieChart,
@@ -19,19 +21,23 @@ import {
   Search,
   Bell,
   Home,
+  Target,
+  X,
   Settings,
   Plus,
   Minus,
   RefreshCw,
   Star,
-  Filter
+  Filter,
+  Trophy
 } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Dashboard() {
   const [stocks, setStocks] = useState({});
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState({ cash: 100000, holdings: {}, name: "Player" });
-  const [selectedStock, setSelectedStock] = useState("");
+  const [selectedStock, setSelectedStock] = useState(null);
   const [quantity, setQuantity] = useState("");
   const [message, setMessage] = useState("");
 
@@ -50,6 +56,11 @@ export default function Dashboard() {
   // --- MARKET DYNAMICS STATE ---
   const [marketData, setMarketData] = useState({});
   const [orderBook, setOrderBook] = useState({});
+  const [showMarketDynamics, setShowMarketDynamics] = useState(false);
+  
+  // --- NAVIGATION TRANSITION STATE ---
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [pageTransition, setPageTransition] = useState(false);
 
   // 1. Timer Listener
   useEffect(() => {
@@ -315,61 +326,117 @@ export default function Dashboard() {
 
   if (!user || Object.keys(stocks).length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-[#141519] flex flex-col items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-green-100 border-t-green-500 rounded-full animate-spin mx-auto mb-6"></div>
-          <h2 className="text-2xl font-semibold text-gray-800 mb-2">Loading Market Data</h2>
-          <p className="text-gray-600">Please wait while we fetch the latest prices...</p>
+          <div className="w-16 h-16 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-6"></div>
+          <h2 className="text-2xl font-semibold text-gray-100 mb-2">Loading Market Data</h2>
+          <p className="text-gray-400">Please wait while we fetch the latest prices...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Enhanced Groww-style Header */}
-      <header className="bg-white shadow-lg border-b border-gray-100 sticky top-0 z-50 backdrop-blur-md">
+    <>
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #374151;
+          border-radius: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #4b5563;
+        }
+      `}</style>
+      <div className="min-h-screen bg-[#141519] relative overflow-hidden">
+
+      {/* Modern Glassmorphism Header */}
+      <header className="bg-[#1a1d23] border-b border-gray-700 sticky top-0 z-50 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-18">
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                   <BarChart3 size={20} className="text-white" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900 tracking-tight">FIC Exchange</h1>
-                  <p className="text-xs text-gray-500 -mt-0.5">Live Trading Platform</p>
+                  <h1 className="text-lg font-bold text-gray-100">FIC Hansraj Stock Exchange</h1>
+                  <p className="text-xs text-gray-400 -mt-0.5">Live Trading Platform</p>
                 </div>
               </div>
               
-              {/* Market Status Indicator */}
-              <div className="flex items-center space-x-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">
-                <div className={`w-2 h-2 rounded-full animate-pulse ${
+              {/* Enhanced Market Status Indicator */}
+              <div className="flex items-center space-x-2 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg">
+                <div className={`w-2 h-2 rounded-full ${
                   isFrozen || timerData?.isPaused ? "bg-red-500" : "bg-green-500"
                 }`}></div>
-                <span className={`text-xs font-medium ${
-                  isFrozen || timerData?.isPaused ? "text-red-700" : "text-green-700"
+                <span className={`text-sm font-medium ${
+                  isFrozen || timerData?.isPaused ? "text-red-400" : "text-green-400"
                 }`}>
                   {isFrozen ? "Frozen" : timerData?.isPaused ? "Paused" : "Live"}
                 </span>
               </div>
             </div>
             
-            <div className="flex items-center space-x-6">
-              {/* User Info Card */}
-              <div className="flex items-center space-x-3 bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">
+            <div className="flex items-center space-x-3">
+              {/* Navigation Links */}
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsNavigating(true);
+                  setPageTransition(true);
+                  setTimeout(() => {
+                    window.location.href = '/trade-history';
+                  }, 600);
+                }}
+                disabled={isNavigating}
+                className="group flex items-center space-x-2 px-4 py-2.5 text-sm font-medium text-gray-300 hover:text-white bg-gradient-to-r from-gray-800 to-gray-750 hover:from-blue-600 hover:to-blue-700 rounded-xl border border-gray-600 hover:border-blue-500 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isNavigating ? (
+                  <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Activity size={16} className="group-hover:rotate-12 transition-transform duration-300" />
+                )}
+                <span className="hidden sm:inline">{isNavigating ? 'Loading...' : 'Trade History'}</span>
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  setIsNavigating(true);
+                  setPageTransition(true);
+                  setTimeout(() => {
+                    window.location.href = '/leaderboard';
+                  }, 600);
+                }}
+                disabled={isNavigating}
+                className="group flex items-center space-x-2 px-4 py-2.5 text-sm font-medium text-gray-300 hover:text-white bg-gradient-to-r from-gray-800/90 via-gray-750/90 to-gray-800/90 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600 rounded-xl border border-gray-600/60 hover:border-amber-400/80 transition-all duration-300 shadow-lg hover:shadow-amber-500/30 hover:scale-[1.02] backdrop-blur-sm disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isNavigating ? (
+                  <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Trophy size={16} className="group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 drop-shadow-sm" />
+                )}
+                <span className="hidden sm:inline font-semibold tracking-wide">{isNavigating ? 'Loading...' : 'Leaderboard'}</span>
+              </button>
+
+              {/* Enhanced User Info Card */}
+              <div className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-lg border border-gray-600">
+                <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white font-semibold text-xs">
                     {userData.name?.charAt(0)?.toUpperCase() || "U"}
                   </span>
                 </div>
-                <div>
-                  <span className="text-sm font-semibold text-gray-900">{userData.name}</span>
-                  <p className="text-xs text-gray-500 -mt-0.5">Trader</p>
-                </div>
+                <span className="text-gray-100 font-medium text-sm hidden sm:inline">{userData.name}</span>
               </div>
               
-              {/* Logout Button */}
+              {/* Enhanced Logout Button */}
               <button
                 onClick={() => {
                   // Handle logout for both Firebase and admin-created users
@@ -380,115 +447,126 @@ export default function Dashboard() {
                     signOut(auth);
                   }
                 }}
-                className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl border border-gray-200 hover:border-red-200 transition-all"
+                className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 hover:border-gray-500 transition-colors"
               >
-                <LogOut size={16} />
-                <span>Logout</span>
+                <LogOut size={14} />
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           </div>
         </div>
       </header>
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8 space-y-8">
 
-        {/* Portfolio Summary - Groww Style */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        {/* Modern Portfolio Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="bg-[#1a1d23] rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-colors">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <Wallet size={20} className="text-green-600" />
-                <span className="text-sm font-medium text-gray-600">Portfolio Value</span>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                  <Wallet size={20} className="text-white" />
+                </div>
+                <span className="text-gray-100 font-medium">Portfolio Value</span>
               </div>
-              <RefreshCw size={16} className="text-gray-400" />
             </div>
             <div className="space-y-1">
-              <p className="text-2xl font-bold text-gray-900">₹{portfolioValue.toLocaleString("en-IN")}</p>
-              <p className="text-sm text-gray-500">Available: ₹{userData.cash?.toLocaleString("en-IN") || '0'}</p>
+              <p className="text-2xl font-bold text-white">₹{portfolioValue.toLocaleString("en-IN")}</p>
+              <p className="text-sm text-gray-400">Available: ₹{userData.cash?.toLocaleString("en-IN") || '0'}</p>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <div className="bg-[#1a1d23] rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-colors">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <Timer size={20} className={timerData?.isRunning && !timerData?.isPaused ? "text-green-600" : "text-red-500"} />
-                <span className="text-sm font-medium text-gray-600">Round {round}</span>
+              <div className="flex items-center space-x-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                  timerData?.isRunning && !timerData?.isPaused 
+                    ? "bg-blue-600" 
+                    : "bg-red-600"
+                }`}>
+                  <Timer size={20} className="text-white" />
+                </div>
+                <span className="text-gray-100 font-medium">Round {round}</span>
               </div>
-              <div className={`w-2 h-2 rounded-full ${
+              <div className={`w-3 h-3 rounded-full ${
                 isFrozen || timerData?.isPaused ? "bg-red-500" : "bg-green-500"
-              } animate-pulse`}></div>
+              }`}></div>
             </div>
             <div className="space-y-1">
-              <p className={`text-2xl font-bold font-mono ${
-                timerData?.isRunning && !timerData?.isPaused ? "text-green-600" : "text-red-500"
-              }`}>{displayTime}</p>
+              <p className="text-2xl font-bold font-mono text-white">{displayTime}</p>
               <p className={`text-sm ${
-                isFrozen || timerData?.isPaused ? "text-red-500" : "text-green-600"
+                isFrozen || timerData?.isPaused ? "text-red-400" : "text-green-400"
               }`}>
                 {isFrozen ? "Market Frozen" : timerData?.isPaused ? "Market Paused" : "Live Trading"}
               </p>
             </div>
           </div>
           
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <div className="bg-[#1a1d23] rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-colors">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <BarChart3 size={20} className="text-blue-600" />
-                <span className="text-sm font-medium text-gray-600">Holdings</span>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                  <BarChart3 size={20} className="text-white" />
+                </div>
+                <span className="text-gray-100 font-medium">Holdings</span>
               </div>
-              <span className="text-xs text-gray-400">{Object.keys(userData.holdings || {}).length} stocks</span>
+              <span className="text-sm text-gray-400 bg-gray-800 px-2 py-1 rounded">{Object.keys(userData.holdings || {}).length} stocks</span>
             </div>
             <div className="space-y-1">
-              <p className="text-2xl font-bold text-gray-900">{Object.keys(userData.holdings || {}).length}</p>
-              <p className="text-sm text-gray-500">Active positions</p>
+              <p className="text-2xl font-bold text-white">{Object.keys(userData.holdings || {}).length}</p>
+              <p className="text-sm text-gray-400">Active positions</p>
             </div>
           </div>
         </div>
 
-        {/* Market News - Groww Style */}
+        {/* Modern Market News */}
         {liveNews.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center space-x-2">
-                <AlertCircle size={16} className="text-orange-600" />
-                <span className="text-lg font-semibold text-gray-900">Market Updates</span>
-                <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">
+          <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
+            <div className="p-4 border-b border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+                    <AlertCircle size={16} className="text-white" />
+                  </div>
+                  <span className="text-lg font-semibold text-gray-100">Market Updates</span>
+                </div>
+                <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded border border-gray-600">
                   {liveNews.length} {liveNews.length === 1 ? 'Update' : 'Updates'}
                 </span>
               </div>
             </div>
-            <div className="p-4 space-y-3 max-h-48 overflow-y-auto">
+            <div className="p-4 space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
               {liveNews.slice(0, 5).map((news, index) => (
-                <div key={news.id || index} className={`p-3 rounded-lg border-l-4 ${
-                  news.severity === 'severe' ? 'bg-red-50 border-red-400' :
-                  news.severity === 'moderate' ? 'bg-yellow-50 border-yellow-400' :
-                  'bg-blue-50 border-blue-400'
+                <div key={news.id || index} className={`p-4 rounded-lg border-l-4 bg-gray-800 hover:bg-gray-750 transition-colors ${
+                  news.severity === 'severe' ? 'border-red-500' :
+                  news.severity === 'moderate' ? 'border-yellow-500' :
+                  'border-blue-500'
                 }`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`text-xs font-semibold uppercase ${
-                      news.severity === 'severe' ? 'text-red-700' :
-                      news.severity === 'moderate' ? 'text-yellow-700' :
-                      'text-blue-700'
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-xs font-semibold uppercase px-2 py-1 rounded ${
+                      news.severity === 'severe' ? 'text-red-300 bg-red-900/50' :
+                      news.severity === 'moderate' ? 'text-yellow-300 bg-yellow-900/50' :
+                      'text-blue-300 bg-blue-900/50'
                     }`}>
                       {news.severity || 'Breaking'}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-400">
                       {news.newsTriggerTime ? new Date(news.newsTriggerTime).toLocaleTimeString() : 'Just now'}
                     </span>
                   </div>
-                  <p className={`text-sm ${
-                    news.severity === 'severe' ? 'text-red-800' :
-                    news.severity === 'moderate' ? 'text-yellow-800' :
-                    'text-blue-800'
-                  }`}>
+                  <p className="text-sm text-gray-200 leading-relaxed">
                     {news.text}
                   </p>
                   {news.priceTriggered && news.stocks && Object.keys(news.stocks).filter(s => news.stocks[s]).length > 0 && (
-                    <div className="mt-2">
-                      <span className="text-xs text-gray-600">Affected stocks: </span>
-                      <span className="text-xs font-medium text-gray-700">
-                        {Object.keys(news.stocks).filter(s => news.stocks[s]).join(', ')}
-                      </span>
+                    <div className="mt-3 p-3 bg-gray-900 rounded-lg border border-gray-600">
+                      <span className="text-xs text-gray-400 font-medium">Affected stocks: </span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {Object.keys(news.stocks).filter(s => news.stocks[s]).map(stock => (
+                          <span key={stock} className="text-xs font-medium text-white bg-blue-600 px-2 py-1 rounded">
+                            {stock}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -504,15 +582,39 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Market Dynamics Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Market Dynamics</h2>
-          </div>
-          <div className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(stocks).slice(0, 6).map(([symbol, data]) => {
-                const symbolOrderBook = orderBook[symbol] || { buyers: 0, sellers: 0, volume: 0 };
+        {/* Modern Market Dynamics Section */}
+        {selectedStock && (
+          <div 
+            id="market-dynamics"
+            className={`bg-[#1a1d23] rounded-xl border border-gray-700 transition-all duration-700 ease-out transform ${
+              showMarketDynamics 
+                ? 'opacity-100 translate-y-0 scale-100' 
+                : 'opacity-0 translate-y-4 scale-95'
+            }`}
+          >
+            <div className="p-4 border-b border-gray-700">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-cyan-600 rounded-lg flex items-center justify-center">
+                    <BarChart3 size={16} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-100">Market Dynamics - {selectedStock}</h2>
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowMarketDynamics(false);
+                    setTimeout(() => setSelectedStock(null), 300);
+                  }}
+                  className="w-8 h-8 bg-gray-800 hover:bg-red-600 rounded-lg flex items-center justify-center border border-gray-600 hover:border-red-500 transition-colors"
+                >
+                  <X size={16} className="text-gray-400 hover:text-white" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              {(() => {
+                const stockData = stocks[selectedStock];
+                const symbolOrderBook = orderBook[selectedStock] || { buyers: 0, sellers: 0, volume: 0 };
                 const buyPressure = symbolOrderBook.buyers || 0;
                 const sellPressure = symbolOrderBook.sellers || 0;
                 const totalPressure = buyPressure + sellPressure;
@@ -520,108 +622,220 @@ export default function Dashboard() {
                 const trend = buyPercentage > 60 ? "up" : buyPercentage < 40 ? "down" : "neutral";
                 
                 return (
-                  <div key={symbol} className={`p-3 rounded-lg border-2 ${
-                    trend === "up" ? "bg-green-50 border-green-200" :
-                    trend === "down" ? "bg-red-50 border-red-200" :
-                    "bg-gray-50 border-gray-200"
-                  }`}>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-semibold text-gray-900">{symbol}</span>
-                      <div className="flex items-center space-x-1">
-                        {trend === "up" ? (
-                          <TrendingUp size={16} className="text-green-600" />
-                        ) : trend === "down" ? (
-                          <TrendingDown size={16} className="text-red-600" />
-                        ) : (
-                          <Activity size={16} className="text-gray-400" />
-                        )}
-                        <span className="text-sm font-medium text-gray-900">₹{Number(data.price).toFixed(2)}</span>
+                  <div className="max-w-2xl mx-auto">
+                    {/* Stock Header */}
+                    <div className="flex justify-between items-center mb-6">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                          trend === "up" ? "bg-green-600" :
+                          trend === "down" ? "bg-red-600" :
+                          "bg-gray-600"
+                        }`}>
+                          {trend === "up" ? (
+                            <TrendingUp size={24} className="text-white" />
+                          ) : trend === "down" ? (
+                            <TrendingDown size={24} className="text-white" />
+                          ) : (
+                            <Activity size={24} className="text-white" />
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-bold text-gray-100">{selectedStock}</h3>
+                          <p className="text-lg font-semibold text-gray-300">₹{Number(stockData?.price || 0).toFixed(2)}</p>
+                        </div>
+                      </div>
+                      <div className={`px-3 py-1 rounded text-sm font-medium ${
+                        trend === "up" ? "bg-green-900 text-green-300" :
+                        trend === "down" ? "bg-red-900 text-red-300" :
+                        "bg-gray-800 text-gray-300"
+                      }`}>
+                        {trend === "up" ? "Bullish" : trend === "down" ? "Bearish" : "Neutral"}
                       </div>
                     </div>
-                    
-                    {/* Pressure Bar */}
-                    <div className="w-full h-2 bg-red-200 rounded-full overflow-hidden mb-2">
-                      <div 
-                        className="h-full bg-green-500 transition-all duration-500"
-                        style={{ width: `${buyPercentage}%` }}
-                      ></div>
+
+                    {/* Market Pressure Visualization */}
+                    <div className="bg-gray-800 rounded-xl p-6 mb-6 border border-gray-700">
+                      <h4 className="text-lg font-semibold text-gray-100 mb-4">Market Pressure</h4>
+                      
+                      {/* Large Pressure Bar */}
+                      <div className="relative mb-4">
+                        <div className="w-full h-6 bg-red-900 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-1000 ease-out"
+                            style={{ width: `${buyPercentage}%` }}
+                          ></div>
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-sm font-medium text-gray-100">
+                            {buyPercentage.toFixed(1)}% Buy Pressure
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-3 gap-6">
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-green-600 rounded-lg flex items-center justify-center mx-auto mb-2">
+                            <ArrowUp size={24} className="text-white" />
+                          </div>
+                          <div className="text-2xl font-bold text-green-400">{buyPressure}</div>
+                          <div className="text-sm text-gray-300">Active Buyers</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-2">
+                            <BarChart3 size={24} className="text-white" />
+                          </div>
+                          <div className="text-2xl font-bold text-blue-400">{symbolOrderBook.volume || 0}</div>
+                          <div className="text-sm text-gray-300">Total Volume</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-red-600 rounded-lg flex items-center justify-center mx-auto mb-2">
+                            <ArrowDown size={24} className="text-white" />
+                          </div>
+                          <div className="text-2xl font-bold text-red-400">{sellPressure}</div>
+                          <div className="text-sm text-gray-300">Active Sellers</div>
+                        </div>
+                      </div>
                     </div>
-                    
-                    <div className="grid grid-cols-3 gap-1 text-xs text-gray-600">
-                      <div className="text-center">
-                        <div className="font-medium text-green-600">{buyPressure}</div>
-                        <div>Buyers</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-blue-600">{symbolOrderBook.volume || 0}</div>
-                        <div>Volume</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-red-600">{sellPressure}</div>
-                        <div>Sellers</div>
+
+                    {/* Trading Tip */}
+                    <div className={`p-4 rounded-lg border-l-4 bg-gray-800 border border-gray-700 ${
+                      trend === "up" ? "border-l-green-500" :
+                      trend === "down" ? "border-l-red-500" :
+                      "border-l-blue-500"
+                    }`}>
+                      <div className="flex items-start space-x-3">
+                        <Target size={20} className={`mt-0.5 ${
+                          trend === "up" ? "text-green-400" :
+                          trend === "down" ? "text-red-400" :
+                          "text-blue-400"
+                        }`} />
+                        <div>
+                          <p className="font-medium text-gray-100">Market Insight</p>
+                          <p className={`text-sm ${
+                            trend === "up" ? "text-green-300" :
+                            trend === "down" ? "text-red-300" :
+                            "text-blue-300"
+                          }`}>
+                            {trend === "up" ? 
+                              "Strong buying pressure detected. Consider buying opportunities." :
+                            trend === "down" ? 
+                              "Heavy selling pressure observed. Exercise caution or consider short positions." :
+                              "Balanced market conditions. Good time for strategic entries."}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 );
-              })}
+              })()}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Main Trading Interface - Groww Style */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Stock List - Groww Style */}
+        {/* Modern Trading Interface */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Modern Stock List */}
           <div className="lg:col-span-4">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">Market</h2>
-                  <div className="flex items-center space-x-2">
-                    <Search size={16} className="text-gray-400" />
-                    <Filter size={16} className="text-gray-400" />
+            <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
+              <div className="p-4 border-b border-gray-700">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                    <BarChart3 size={16} className="text-white" />
                   </div>
+                  <h2 className="text-lg font-semibold text-gray-100">Live Market</h2>
                 </div>
               </div>
-              <div className="p-2 space-y-1 max-h-96 overflow-y-auto">
+              <div className="p-3 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
                 {Object.entries(stocks).map(([sym, data]) => {
                   const price = Number(data.price);
                   const prevPrice = price * (1 + (Math.random() - 0.5) * 0.02); // Mock previous price for demo
                   const change = price - prevPrice;
                   const changePercent = (change / prevPrice) * 100;
                   const isPositive = change >= 0;
+                  const owned = userData.holdings?.[sym] || 0;
+                  const isSelected = selectedStock === sym;
                   
                   return (
                     <div
                       key={sym}
-                      onClick={() => setSelectedStock(sym)}
-                      className={`p-3 rounded-lg cursor-pointer transition-all border ${
-                        selectedStock === sym
-                          ? "bg-green-50 border-green-200"
-                          : "hover:bg-gray-50 border-transparent"
+                      onClick={() => {
+                        setSelectedStock(sym);
+                        setShowMarketDynamics(false);
+                        setTimeout(() => {
+                          setShowMarketDynamics(true);
+                          // Smooth scroll to market dynamics section after opening
+                          setTimeout(() => {
+                            const marketDynamicsElement = document.querySelector('#market-dynamics');
+                            if (marketDynamicsElement) {
+                              marketDynamicsElement.scrollIntoView({ 
+                                behavior: 'smooth',
+                                block: 'center'
+                              });
+                            }
+                          }, 400);
+                        }, 100);
+                      }}
+                      className={`p-3 rounded-lg cursor-pointer transition-all duration-300 border hover:scale-[1.01] ${
+                        isSelected
+                          ? "bg-blue-600/20 border-blue-500/50 shadow-lg"
+                          : "bg-gray-800/80 border-gray-600/50 hover:bg-gray-700/80 hover:border-gray-500/60"
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-semibold text-gray-900">{sym}</span>
-                            {selectedStock === sym && <Star size={14} className="text-green-500 fill-current" />}
-                          </div>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <span className="text-lg font-semibold text-gray-900">₹{price.toFixed(2)}</span>
-                            <div className={`flex items-center space-x-1 text-xs font-medium ${
-                              isPositive ? "text-green-600" : "text-red-600"
-                            }`}>
-                              {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                              <span>{isPositive ? "+" : ""}{changePercent.toFixed(2)}%</span>
-                            </div>
-                          </div>
+                      {/* Stock Header */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            isSelected ? 'bg-blue-400' : isPositive ? 'bg-green-500' : 'bg-red-500'
+                          }`}></div>
+                          <h3 className={`font-bold text-sm ${
+                            isSelected ? 'text-blue-200' : 'text-gray-100'
+                          }`}>
+                            {sym}
+                          </h3>
+                          {owned > 0 && (
+                            <span className="bg-green-600 text-white text-xs font-semibold px-1.5 py-0.5 rounded">
+                              {owned}
+                            </span>
+                          )}
                         </div>
-                        <div className="text-right">
-                          <div className={`text-sm font-medium ${isPositive ? "text-green-600" : "text-red-600"}`}>
-                            {isPositive ? "+" : ""}₹{Math.abs(change).toFixed(2)}
-                          </div>
+                        
+                        {/* Change Amount */}
+                        <div className={`text-xs font-semibold px-2 py-1 rounded ${
+                          isPositive 
+                            ? "text-green-300 bg-green-600/30" 
+                            : "text-red-300 bg-red-600/30"
+                        }`}>
+                          {isPositive ? "+" : ""}₹{Math.abs(change).toFixed(2)}
                         </div>
                       </div>
+                      
+                      {/* Price and Change */}
+                      <div className="flex items-center justify-between">
+                        <span className={`text-lg font-bold font-mono ${
+                          isSelected ? 'text-white' : 'text-gray-100'
+                        }`}>
+                          ₹{price.toFixed(2)}
+                        </span>
+                        
+                        <div className={`flex items-center space-x-1 text-xs font-bold ${
+                          isPositive ? "text-green-400" : "text-red-400"
+                        }`}>
+                          {isPositive ? (
+                            <TrendingUp size={12} />
+                          ) : (
+                            <TrendingDown size={12} />
+                          )}
+                          <span>{isPositive ? "+" : ""}{changePercent.toFixed(2)}%</span>
+                        </div>
+                      </div>
+                      
+                      {/* Holdings Info */}
+                      {owned > 0 && (
+                        <div className="mt-2 text-xs text-green-400">
+                          Value: ₹{(owned * price).toLocaleString('en-IN')}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -629,59 +843,68 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Trading Panel - Groww Style */}
+          {/* Modern Trading Panel */}
           <div className="lg:col-span-5">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {selectedStock ? `Trade ${selectedStock}` : "Select a Stock"}
-                </h2>
+            <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
+              <div className="p-4 border-b border-gray-700">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <Activity size={16} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-100">
+                    {selectedStock ? `Trade ${selectedStock}` : "Trading Interface"}
+                  </h2>
+                </div>
               </div>
               <div className="p-6">
                 {selectedStock && stocks[selectedStock] ? (
-                  <div className="space-y-6">
-                    {/* Stock Info */}
-                    <div className="text-center py-4">
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">{selectedStock}</h3>
-                      <p className="text-3xl font-bold text-green-600">₹{Number(stocks[selectedStock].price).toFixed(2)}</p>
+                  <div className="space-y-8">
+                    {/* Enhanced Stock Info */}
+                    <div className="text-center py-4 bg-gray-800 rounded-lg border border-gray-700">
+                      <h3 className="text-2xl font-bold text-gray-100 mb-3">{selectedStock}</h3>
+                      <p className="text-4xl font-bold text-white">₹{Number(stocks[selectedStock].price).toFixed(2)}</p>
+                      <div className="mt-2 flex items-center justify-center space-x-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-green-400 text-sm font-medium">Live Price</span>
+                      </div>
                     </div>
 
-                    {/* Quantity Input */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                    {/* Enhanced Quantity Input */}
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-gray-300">Quantity</label>
                       <input
                         type="number"
                         placeholder="Enter quantity"
                         value={quantity}
                         onChange={(e) => setQuantity(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:outline-none text-center text-lg font-semibold"
+                        className="w-full px-4 py-3 bg-gray-800 border border-gray-600 focus:border-blue-500 rounded-lg text-white placeholder-gray-400 focus:outline-none text-center font-medium transition-colors"
                       />
                     </div>
 
-                    {/* Available Cash & Order Value */}
-                    <div className="space-y-3">
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    {/* Enhanced Cash & Order Value */}
+                    <div className="space-y-4">
+                      <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-blue-700">Available Cash</span>
-                          <span className="font-bold text-blue-900">
+                          <span className="text-sm font-medium text-gray-300">Available Cash</span>
+                          <span className="font-bold text-lg text-white">
                             ₹{userData.cash?.toLocaleString("en-IN") || '0'}
                           </span>
                         </div>
                       </div>
                       
                       {quantity && (
-                        <div className="bg-gray-50 rounded-lg p-4">
+                        <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm text-gray-600">Order Value</span>
-                            <span className="font-semibold text-gray-900">
+                            <span className="text-sm text-gray-300">Order Value</span>
+                            <span className="font-semibold text-gray-100">
                               ₹{(Number(quantity) * Number(stocks[selectedStock].price)).toLocaleString("en-IN")}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-500">Remaining Cash</span>
+                            <span className="text-xs text-gray-400">Remaining Cash</span>
                             <span className={`text-xs font-medium ${
                               (userData.cash || 0) - (Number(quantity) * Number(stocks[selectedStock].price)) >= 0 
-                                ? "text-green-600" : "text-red-600"
+                                ? "text-green-400" : "text-red-400"
                             }`}>
                               ₹{((userData.cash || 0) - (Number(quantity) * Number(stocks[selectedStock].price))).toLocaleString("en-IN")}
                             </span>
@@ -690,18 +913,18 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    {/* Trade Buttons */}
+                    {/* Enhanced Trade Buttons */}
                     <div className="grid grid-cols-2 gap-4">
                       <button
                         onClick={() => handleTrade("BUY")}
-                        className="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                        className="bg-green-600 hover:bg-green-500 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
                       >
                         <Plus size={18} />
                         <span>BUY</span>
                       </button>
                       <button
                         onClick={() => handleTrade("SELL")}
-                        className="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                        className="bg-red-600 hover:bg-red-500 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
                       >
                         <Minus size={18} />
                         <span>SELL</span>
@@ -710,63 +933,82 @@ export default function Dashboard() {
 
                     {/* Message */}
                     {message && (
-                      <div className={`p-4 rounded-lg border ${
+                      <div className={`p-3 rounded-lg border ${
                         message.includes("BOUGHT") || message.includes("SOLD")
-                          ? "bg-green-50 border-green-200 text-green-800"
-                          : "bg-red-50 border-red-200 text-red-800"
+                          ? "bg-green-900 border-green-600 text-green-300"
+                          : "bg-red-900 border-red-600 text-red-300"
                       }`}>
-                        <p className="text-center font-medium">{message}</p>
+                        <p className="text-center font-medium text-sm">{message}</p>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <BarChart3 size={48} className="text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Select a stock from the list to start trading</p>
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center mx-auto mb-4">
+                      <Activity size={24} className="text-gray-400" />
+                    </div>
+                    <p className="text-gray-400 text-sm">Click on a stock to start trading</p>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Trade History - Groww Style */}
+          {/* Modern Trade History */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Recent Trades</h2>
+            <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
+              <div className="p-4 border-b border-gray-700">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <Activity size={16} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-100">Recent Trades</h2>
+                </div>
               </div>
-              <div className="p-2 space-y-2 max-h-96 overflow-y-auto">
+              <div className="p-3 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
                 {tradeHistory.length === 0 ? (
                   <div className="text-center py-8">
-                    <Activity size={32} className="text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">No trades yet</p>
+                    <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center mx-auto mb-3">
+                      <Activity size={20} className="text-gray-400" />
+                    </div>
+                    <p className="text-sm text-gray-400">No trades yet</p>
                   </div>
                 ) : (
                   tradeHistory.slice(0, 10).map((t, i) => {
                     const avgPrice = t.quantity > 0 ? (Math.abs(t.cashChange) / t.quantity) : 0;
+                    const isBuy = t.type === "BUY";
                     return (
-                    <div key={i} className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center justify-between mb-1">
+                    <div key={i} className="p-3 bg-gray-800/80 border border-gray-600/50 rounded-lg hover:bg-gray-700/80 hover:border-gray-500/60 transition-all duration-300">
+                      {/* Trade Header */}
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-2">
                           <div className={`w-2 h-2 rounded-full ${
-                            t.type === "BUY" ? "bg-green-500" : "bg-red-500"
+                            isBuy ? "bg-green-500" : "bg-red-500"
                           }`}></div>
-                          <span className="text-sm font-semibold text-gray-900">{t.type}</span>
-                          <span className="text-sm text-gray-600">{t.symbol}</span>
+                          <span className={`text-xs font-bold px-2 py-1 rounded ${
+                            isBuy ? "text-green-300 bg-green-600/30" : "text-red-300 bg-red-600/30"
+                          }`}>
+                            {t.type}
+                          </span>
+                          <span className="text-sm font-semibold text-gray-100">{t.symbol}</span>
                         </div>
-                        <span className="text-xs text-gray-500">R{t.round}</span>
+                        <span className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded">R{t.round}</span>
                       </div>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-gray-600">{t.quantity} shares</span>
-                        <span className={`text-sm font-semibold ${
-                          t.type === "BUY" ? "text-red-600" : "text-green-600"
+                      
+                      {/* Trade Details */}
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-300">{t.quantity} shares</span>
+                        <span className={`text-sm font-bold ${
+                          isBuy ? "text-red-400" : "text-green-400"
                         }`}>
                           {t.cashChange > 0 ? "+" : ""}₹{Math.abs(t.cashChange).toLocaleString("en-IN")}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">Avg: ₹{avgPrice.toFixed(2)}/share</span>
-                        <span className="text-xs text-gray-400">
+                      
+                      {/* Trade Meta */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500">Avg: ₹{avgPrice.toFixed(2)}/share</span>
+                        <span className="text-gray-400">
                           {new Date(t.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
@@ -779,12 +1021,20 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Holdings Section - Groww Style */}
+        {/* Modern Holdings Section */}
         {Object.keys(userData.holdings || {}).length > 0 && (
           <div className="mt-8">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Your Holdings</h2>
+            <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
+              <div className="p-4 border-b border-gray-700">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                    <PieChart size={16} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-100">Your Holdings</h2>
+                  <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded border border-gray-600">
+                    {Object.keys(userData.holdings || {}).length} {Object.keys(userData.holdings || {}).length === 1 ? 'Position' : 'Positions'}
+                  </span>
+                </div>
               </div>
               <div className="p-4 space-y-3">
                 {Object.entries(userData.holdings || {}).map(([sym, qty]) => {
@@ -792,17 +1042,29 @@ export default function Dashboard() {
                   const holdingValue = currentPrice * qty;
                   
                   return (
-                    <div key={sym} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-semibold text-gray-900">{sym}</span>
-                          <span className="text-sm text-gray-500">{qty} shares</span>
+                    <div key={sym} className="p-4 bg-gray-800/80 border border-gray-600/50 rounded-lg hover:bg-gray-700/80 hover:border-gray-500/60 transition-all duration-300">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                            {sym.charAt(0)}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-100 text-lg">{sym}</h3>
+                            <p className="text-sm text-gray-400">{qty} shares</p>
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600">₹{currentPrice.toFixed(2)} per share</div>
+                        <div className="text-right">
+                          <div className="font-bold text-white text-lg">₹{holdingValue.toLocaleString("en-IN")}</div>
+                          <div className="text-sm text-green-400 font-medium">Current Value</div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-gray-900">₹{holdingValue.toLocaleString("en-IN")}</div>
-                        <div className="text-sm text-green-600">Current Value</div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-500">Avg. Price: ₹{currentPrice.toFixed(2)}/share</span>
+                        <span className={`font-medium ${
+                          holdingValue > 0 ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          P&L: ₹{((holdingValue - (qty * currentPrice)) || 0).toFixed(2)}
+                        </span>
                       </div>
                     </div>
                   );
@@ -812,36 +1074,44 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Round History - Groww Style */}
+        {/* Modern Round History Section */}
         {Object.keys(roundHistory).length > 0 && (
           <div className="mt-8">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Round History</h2>
+            <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
+              <div className="p-4 border-b border-gray-700">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <BarChart3 size={16} className="text-white" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-gray-100">Round History</h2>
+                  <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded border border-gray-600">
+                    {Object.keys(roundHistory).length} {Object.keys(roundHistory).length === 1 ? 'Round' : 'Rounds'}
+                  </span>
+                </div>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto custom-scrollbar">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-800 border-b border-gray-700">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Round</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-100">Round</th>
                       {stockList.map((s) => (
-                        <th key={s} className="px-4 py-3 text-right text-sm font-semibold text-gray-900">
+                        <th key={s} className="px-4 py-3 text-right text-sm font-semibold text-gray-100">
                           {s}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-700">
                     {Object.entries(roundHistory)
                       .sort()
                       .map(([roundKey, data]) => (
-                        <tr key={roundKey} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-semibold text-gray-900">
-                            {roundKey.replace("round", "Round ").toUpperCase()}
+                        <tr key={roundKey} className="hover:bg-gray-800/50 transition-colors">
+                          <td className="px-4 py-3 font-medium text-gray-100">
+                            {roundKey.replace("round", "Round ")}
                           </td>
                           {stockList.map((stock) => (
-                            <td key={stock} className="px-4 py-3 text-right font-mono text-gray-700">
-                              ₹{data.prices?.[stock]?.toFixed(2) || "-"}
+                            <td key={stock} className="px-4 py-3 text-right font-mono text-gray-300 text-sm">
+                              {data.prices?.[stock] ? `₹${data.prices[stock].toFixed(2)}` : "-"}
                             </td>
                           ))}
                         </tr>
@@ -853,6 +1123,22 @@ export default function Dashboard() {
           </div>
         )}
       </main>
-    </div>
+      </div>
+
+      {/* Page Transition Overlay */}
+      {pageTransition && (
+        <div className="fixed inset-0 z-50 bg-gray-900 flex items-center justify-center transition-all duration-600">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-300 text-lg font-medium">Loading...</p>
+            <div className="mt-3 flex space-x-1 justify-center">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

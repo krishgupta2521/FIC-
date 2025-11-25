@@ -62,7 +62,8 @@ export default function Home() {
         
         // If Firebase Auth fails, try admin-created user credentials
         try {
-          const credentialsRef = ref(db, `userCredentials/${email}`);
+          const encodedEmail = email.replace(/\./g, '_DOT_').replace(/\#/g, '_HASH_').replace(/\$/g, '_DOLLAR_').replace(/\[/g, '_LBRACKET_').replace(/\]/g, '_RBRACKET_');
+          const credentialsRef = ref(db, `userCredentials/${encodedEmail}`);
           console.log("Checking admin credentials for:", email);
           const snapshot = await get(credentialsRef);
           

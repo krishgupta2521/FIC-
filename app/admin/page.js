@@ -5,6 +5,15 @@ import { db } from "@/lib/firebase";
 // We use 'remove' from Realtime Database instead of 'deleteDoc' from Firestore
 import { ref, push, set, remove, onValue, update, get } from "firebase/database";
 
+// Helper functions to encode/decode emails for Firebase paths
+const encodeEmail = (email) => {
+  return email.replace(/\./g, '_DOT_').replace(/\#/g, '_HASH_').replace(/\$/g, '_DOLLAR_').replace(/\[/g, '_LBRACKET_').replace(/\]/g, '_RBRACKET_');
+};
+
+const decodeEmail = (encodedEmail) => {
+  return encodedEmail.replace(/_DOT_/g, '.').replace(/_HASH_/g, '#').replace(/_DOLLAR_/g, '$').replace(/_LBRACKET_/g, '[').replace(/_RBRACKET_/g, ']');
+};
+
 export default function Admin() {
   // --- AUTH & EXISTING STATE ---
   const [password, setPassword] = useState("");
@@ -496,10 +505,12 @@ export default function Admin() {
       });
 
       // Also store credentials for login (simple approach for demo)
-      await set(ref(db, `userCredentials/${newUserEmail.trim()}`), {
+      const encodedEmail = encodeEmail(newUserEmail.trim());
+      await set(ref(db, `userCredentials/${encodedEmail}`), {
         userId: userId,
         password: newUserPassword.trim(),
-        name: newUserName.trim()
+        name: newUserName.trim(),
+        email: newUserEmail.trim() // Store original email for reference
       });
 
       setNewUserEmail("");
@@ -549,7 +560,8 @@ export default function Admin() {
       // Step 4: Remove user credentials if email exists
       if (userEmail && userEmail.trim() !== "" && userEmail !== "No email") {
         try {
-          await remove(ref(db, `userCredentials/${userEmail}`));
+          const encodedEmail = encodeEmail(userEmail);
+          await remove(ref(db, `userCredentials/${encodedEmail}`));
           console.log("User credentials removed");
         } catch (e) {
           console.log("No user credentials to remove");
