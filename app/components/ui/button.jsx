@@ -1,21 +1,39 @@
-const cn = (...inputs) => inputs.filter(Boolean).join(" ");
-
-import * as React from "react";
-
-const Button = React.forwardRef(({ className, variant, size, ...props }, ref) => {
+export function PrimaryButton({ children, onClick, className = "", ...props }) {
   return (
     <button
-      className={cn(
-        "inline-flex items-center justify-center rounded-xl text-sm font-medium transition-all hover:scale-105 focus:outline-none disabled:opacity-50",
-        "bg-silver text-black hover:bg-white",
-        size === "lg" && "px-10 py-6 text-lg",
-        className
-      )}
-      ref={ref}
+      onClick={onClick}
+      className={`px-10 py-5 bg-white text-black font-bold rounded-xl hover:scale-105 transition-transform ${className}`}
       {...props}
-    />
+    >
+      {children}
+    </button>
   );
-});
-Button.displayName = "Button";
+}
 
-export { Button };
+export function SecondaryButton({ children, onClick, className = "", ...props }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-10 py-5 border border-white/20 rounded-xl font-semibold hover:bg-white/5 transition-all ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function BuyButton({ children = "Buy Now", ...props }) {
+  return (
+    <button className="w-full py-4 bg-green-500 hover:bg-green-400 text-white font-bold rounded-lg transition" {...props}>
+      {children}
+    </button>
+  );
+}
+
+export function SellButton({ children = "Sell Now", ...props }) {
+  return (
+    <button className="w-full py-4 bg-red-500 hover:bg-red-400 text-white font-bold rounded-lg transition" {...props}>
+      {children}
+    </button>
+  );
+}

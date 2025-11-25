@@ -11,36 +11,49 @@ export default function DashboardLayout({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setLoading(false);
-      } else {
-        router.replace("/");
+    // Check for admin-created user first (localStorage)
+    const checkAuth = () => {
+      const adminUser = localStorage.getItem('adminCreatedUser');
+      if (adminUser) {
+        try {
+          JSON.parse(adminUser); // Validate JSON
+          setLoading(false);
+          return;
+        } catch {
+          localStorage.removeItem('adminCreatedUser');
+        }
       }
-    });
-    return () => unsubscribe();
+      
+      // Then check Firebase auth
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          setLoading(false);
+        } else {
+          // No auth found, redirect to login
+          router.replace("/");
+        }
+      });
+      
+      return unsubscribe;
+    };
+    
+    const unsubscribe = checkAuth();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [router]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center text-2xl">
-        Loading your dashboard...
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-green-100 border-t-green-500 rounded-full animate-spin mx-auto mb-6"></div>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">Loading Dashboard</h2>
+          <p className="text-gray-600">Please wait...</p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="border-b border-[#333] p-6 flex justify-between items-center">
-        <h1 className="text-3xl font-bold">FIC Hansraj Stock Exchange</h1>
-        <button
-          onClick={() => auth.signOut().then(() => router.replace("/"))}
-          className="bg-red-600 hover:bg-red-500 px-6 py-3 rounded-lg"
-        >
-          Logout
-        </button>
-      </div>
-      {children}
-    </div>
-  );
+  return <>{children}</>;
 }
