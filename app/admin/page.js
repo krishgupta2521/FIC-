@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 // We use 'remove' from Realtime Database instead of 'deleteDoc' from Firestore
 import { ref, push, set, remove, onValue, update, get } from "firebase/database";
+import { generateCompanyData, validateCompanyData } from "../utils/companyUtils";
 
 // Helper functions to encode/decode emails for Firebase paths
 const encodeEmail = (email) => {
@@ -44,7 +45,10 @@ export default function Admin() {
   // --- NEW STOCK STATE ---
   const [newStockSymbol, setNewStockSymbol] = useState("");
   const [newStockPrice, setNewStockPrice] = useState("");
+  const [newCompanyName, setNewCompanyName] = useState("");
   const [showAddStock, setShowAddStock] = useState(false);
+  const [logoDetectionResult, setLogoDetectionResult] = useState(null);
+  const [isDetectingLogo, setIsDetectingLogo] = useState(false);
 
   // --- PERSISTENT LOGIN STATE ---
   const [keepSignedIn, setKeepSignedIn] = useState(false); 
@@ -59,6 +63,8 @@ export default function Admin() {
   const [newUserName, setNewUserName] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserCash, setNewUserCash] = useState("100000");
+
+
 
   const ADMIN_PASS = "PunkRocker@Alok0045";
 
@@ -157,6 +163,8 @@ export default function Admin() {
       setOrderBook(snapshot.val() || {});
     });
 
+
+
   }, [isAuth]);
 
   // --- ACTIONS ---
@@ -216,6 +224,39 @@ export default function Admin() {
     });
   };
 
+  const detectCompanyLogo = async () => {
+    if (!newStockSymbol.trim()) {
+      setMessage("Please enter a stock symbol first");
+      return;
+    }
+
+    setIsDetectingLogo(true);
+    setLogoDetectionResult(null);
+
+    try {
+      const companyData = await generateCompanyData(
+        newStockSymbol.trim().toUpperCase(), 
+        newCompanyName.trim() || null
+      );
+      
+      setLogoDetectionResult(companyData);
+      
+      // Auto-fill company name if not provided
+      if (!newCompanyName.trim() && companyData.name !== companyData.symbol) {
+        setNewCompanyName(companyData.name);
+      }
+      
+      setMessage(companyData.logoUrl ? 
+        `✅ Logo found for ${companyData.name}` : 
+        `⚠️ No logo found, will use fallback design`
+      );
+    } catch (err) {
+      setMessage("Failed to detect company info");
+    } finally {
+      setIsDetectingLogo(false);
+    }
+  };
+
   const addNewStock = async () => {
     if (!newStockSymbol.trim() || !newStockPrice) {
       setMessage("Please enter both symbol and price");
@@ -224,6 +265,14 @@ export default function Admin() {
 
     const symbol = newStockSymbol.trim().toUpperCase();
     const price = Number(newStockPrice);
+    const companyName = newCompanyName.trim() || symbol;
+
+    // Validate input
+    const validation = validateCompanyData({ symbol, name: companyName });
+    if (!validation.isValid) {
+      setMessage(validation.errors.join(", "));
+      return;
+    }
 
     if (stocks[symbol]) {
       setMessage("Stock symbol already exists");
@@ -236,15 +285,33 @@ export default function Admin() {
     }
 
     try {
-      await set(ref(db, `stocks/${symbol}`), {
+      // Create enhanced stock data
+      const stockData = {
         price: price,
         symbol: symbol,
+        name: companyName,
         createdAt: Date.now()
-      });
+      };
+
+      // Add logo info if detected
+      if (logoDetectionResult) {
+        stockData.domain = logoDetectionResult.domain;
+        stockData.sector = logoDetectionResult.sector;
+        stockData.color = logoDetectionResult.color;
+      }
+
+      await set(ref(db, `stocks/${symbol}`), stockData);
+      
+      // Reset form
       setNewStockSymbol("");
       setNewStockPrice("");
+      setNewCompanyName("");
+      setLogoDetectionResult(null);
       setShowAddStock(false);
-      setMessage(`Stock ${symbol} added successfully`);
+      
+      setMessage(`Stock ${symbol} (${companyName}) added successfully${
+        logoDetectionResult?.logoUrl ? ' with logo' : ''
+      }`);
     } catch (err) {
       setMessage("Failed to add stock");
     }
@@ -590,48 +657,75 @@ export default function Admin() {
   };
 
   if (!isAuth) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="bg-white rounded-2xl shadow-xl p-12 w-full max-w-md border border-gray-200">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f1114] via-[#141519] to-[#1a1d23] flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Premium Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/6 w-[400px] h-[400px] bg-gradient-to-r from-gray-500/10 via-white/5 to-gray-400/8 rounded-full blur-[80px] animate-pulse" style={{animationDuration: '8s'}} />
+        <div className="absolute bottom-1/3 right-1/6 w-[350px] h-[350px] bg-gradient-to-l from-gray-600/8 via-white/3 to-gray-500/5 rounded-full blur-[70px] animate-pulse" style={{animationDuration: '12s', animationDelay: '2s'}} />
+      </div>
+      
+      <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-2xl border border-gray-400/30 shadow-2xl shadow-white/10 p-12 w-full max-w-md relative z-10">
         <form onSubmit={login} className="text-center">
+          {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h1>
-            <p className="text-gray-600">Enter admin credentials to continue</p>
+            <div className="w-16 h-16 bg-gradient-to-br from-gray-300 via-white to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
+              <svg className="w-8 h-8 text-black" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 8a6 6 0 01-7.743 5.743L10 14l-0.257-0.257A6 6 0 1118 8zM2 8a6 6 0 1010.257 5.743L12 14l-0.257-0.257A6 6 0 012 8z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent mb-2">Admin Control</h1>
+            <p className="text-gray-400 text-sm">Enter credentials to access management panel</p>
           </div>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            className="w-full p-4 text-lg border border-gray-300 rounded-xl text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4" 
-            placeholder="Enter admin password"
-            autoFocus 
-          />
-          <div className="flex items-center justify-start mb-6">
-            <label className="flex items-center gap-2 text-sm text-gray-600">
+          
+          <div className="space-y-6">
+            <div>
               <input 
-                type="checkbox" 
-                checked={keepSignedIn}
-                onChange={(e) => setKeepSignedIn(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                type="password" 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                className="w-full p-4 text-lg bg-gray-800/60 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 backdrop-blur-sm transition-all duration-300" 
+                placeholder="Enter admin password"
+                autoFocus 
               />
-              <span>Keep me signed in</span>
-            </label>
+            </div>
+            
+            <div className="flex items-center justify-start">
+              <label className="flex items-center gap-3 text-sm text-gray-300">
+                <input 
+                  type="checkbox" 
+                  checked={keepSignedIn}
+                  onChange={(e) => setKeepSignedIn(e.target.checked)}
+                  className="w-4 h-4 bg-gray-700 border border-gray-600 rounded focus:ring-white/50 focus:ring-2 text-white"
+                />
+                <span>Keep me signed in</span>
+              </label>
+            </div>
+            
+            <button className="w-full py-4 text-lg font-semibold bg-gradient-to-r from-gray-300 to-white hover:from-white hover:to-gray-200 text-black rounded-xl transition-all duration-300 shadow-lg hover:shadow-white/30 transform hover:scale-105">
+              Access Control Panel
+            </button>
           </div>
-          <button className="w-full py-4 text-lg font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors">
-            Sign In
-          </button>
         </form>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-6 p-6">
-          <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f1114] via-[#141519] to-[#1a1d23] relative overflow-hidden">
+      {/* Premium Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/6 w-[600px] h-[600px] bg-gradient-to-r from-gray-500/5 via-white/3 to-gray-400/4 rounded-full blur-[120px] animate-pulse" style={{animationDuration: '8s'}} />
+        <div className="absolute bottom-1/3 right-1/6 w-[500px] h-[500px] bg-gradient-to-l from-gray-600/4 via-white/2 to-gray-500/3 rounded-full blur-[100px] animate-pulse" style={{animationDuration: '12s', animationDelay: '2s'}} />
+      </div>
+      
+      <div className="relative z-10 p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-2xl border border-gray-400/30 shadow-2xl shadow-white/10 mb-8 p-6">
+            <div className="flex justify-between items-center">
             <div className="text-center flex-1">
-              <h1 className="text-4xl font-bold text-gray-900">Stock Exchange Admin Panel</h1>
-              <p className="text-gray-600 mt-2">Manage rounds, stocks, news, and participants</p>
+              <h1 className="text-4xl font-bold text-gray-100">Stock Exchange Admin Panel</h1>
+              <p className="text-gray-300 mt-2">Manage rounds, stocks, news, and participants</p>
             </div>
             <button 
               onClick={logout}
@@ -643,54 +737,62 @@ export default function Admin() {
         </div>
 
         {/* STATUS CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <p className="text-sm font-medium text-gray-600 mb-1">Current Round</p>
-            <p className="text-3xl font-bold text-gray-900">{timerData?.roundNumber || 1}</p>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
+          <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6">
+            <p className="text-sm font-medium text-blue-400 mb-1">Current Round</p>
+            <p className="text-3xl font-bold text-gray-100">{timerData?.roundNumber || 1}</p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <p className="text-sm font-medium text-gray-600 mb-1">Market Status</p>
-            <p className={`text-3xl font-bold ${isFrozen ? "text-red-600" : "text-green-600"}`}>
+          <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6">
+            <p className="text-sm font-medium text-green-400 mb-1">Market Status</p>
+            <p className={`text-3xl font-bold ${isFrozen ? "text-red-400" : "text-green-400"}`}>
               {isFrozen ? "Frozen" : "Live"}
             </p>
           </div>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <p className="text-sm font-medium text-gray-600 mb-1">Timer ({timerStatus})</p>
-            <p className={`text-3xl font-bold ${timeLeft <= 2 ? "text-red-600" : "text-gray-900"}`}>
+          <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6">
+            <p className="text-sm font-medium text-red-400 mb-1">Timer ({timerStatus})</p>
+            <p className={`text-3xl font-bold ${timeLeft <= 2 ? "text-red-400" : "text-gray-100"}`}>
               {timeLeft} min
             </p>
+          </div>
+          <div className="bg-gradient-to-br from-purple-900/60 to-blue-900/60 rounded-xl shadow-2xl shadow-white/10 border border-purple-600/50 backdrop-blur-sm p-6">
+            <p className="text-sm font-medium text-purple-300 mb-1">System Health</p>
+            <p className="text-3xl font-bold text-green-400">Online</p>
+          </div>
+          <div className="bg-gradient-to-br from-orange-900/60 to-red-900/60 rounded-xl shadow-2xl shadow-white/10 border border-orange-600/50 backdrop-blur-sm p-6">
+            <p className="text-sm font-medium text-orange-300 mb-1">Platform Status</p>
+            <p className="text-lg font-bold text-green-400">Active</p>
           </div>
         </div>
 
         {/* TIMER CONTROLS */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Round Timer Controls</h3>
+        <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-100 mb-4">Round Timer Controls</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button 
               onClick={startTimerRound} 
               disabled={timerData?.isRunning} 
-              className="py-3 px-4 font-medium bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500 rounded-lg transition-colors"
+              className="py-3 px-4 font-medium bg-green-600 text-white hover:bg-green-700 disabled:bg-gray-800/60 disabled:text-gray-500 rounded-lg transition-colors"
             >
               Start Timer
             </button>
             <button 
               onClick={pauseTimerRound} 
               disabled={!timerData?.isRunning} 
-              className="py-3 px-4 font-medium bg-yellow-600 text-white hover:bg-yellow-700 disabled:bg-gray-300 disabled:text-gray-500 rounded-lg transition-colors"
+              className="py-3 px-4 font-medium bg-yellow-600 text-white hover:bg-yellow-700 disabled:bg-gray-800/60 disabled:text-gray-500 rounded-lg transition-colors"
             >
               Pause Timer
             </button>
             <button 
               onClick={resumeTimerRound} 
               disabled={!timerData?.isPaused} 
-              className="py-3 px-4 font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-500 rounded-lg transition-colors"
+              className="py-3 px-4 font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-800/60 disabled:text-gray-500 rounded-lg transition-colors"
             >
               Resume Timer
             </button>
             <button 
               onClick={endTimerRound} 
               disabled={!timerData?.isRunning && !timerData?.isPaused} 
-              className="py-3 px-4 font-medium bg-red-600 text-white hover:bg-red-700 disabled:bg-gray-300 disabled:text-gray-500 rounded-lg transition-colors"
+              className="py-3 px-4 font-medium bg-red-600 text-white hover:bg-red-700 disabled:bg-gray-800/60 disabled:text-gray-500 rounded-lg transition-colors"
             >
               End Round
             </button>
@@ -700,15 +802,15 @@ export default function Admin() {
         {/* STOCK CONTROL CENTER */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* MANUAL PRICES & LOCKING */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Stock Management</h3>
+              <h3 className="text-lg font-semibold text-gray-100">Stock Management</h3>
               <div className="flex gap-2">
                 <button 
                   onClick={() => setShowAddStock(!showAddStock)}
                   className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg text-sm transition-colors"
                 >
-                  {showAddStock ? "Cancel" : "Add Stock"}
+                  {showAddStock ? "Cancel" : "➕ Add New Stock"}
                 </button>
                 {Object.keys(pendingPrices).length > 0 && (
                   <button 
@@ -730,36 +832,125 @@ export default function Admin() {
             </div>
             
             {/* ADD NEW STOCK FORM */}
-            {showAddStock && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <h4 className="text-md font-semibold text-gray-900 mb-3">Add New Stock</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <input 
-                    type="text" 
-                    placeholder="Stock Symbol (e.g., APPLE)"
-                    value={newStockSymbol}
-                    onChange={(e) => setNewStockSymbol(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <input 
-                    type="number" 
-                    placeholder="Initial Price"
-                    value={newStockPrice}
-                    onChange={(e) => setNewStockPrice(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    step="0.01"
-                  />
-                  <button 
-                    onClick={addNewStock}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-                  >
-                    Add Stock
-                  </button>
+              {showAddStock && (
+                <div className="bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 border border-gray-600/50 rounded-xl p-6 mb-6 backdrop-blur-sm">
+                  <h4 className="text-lg font-semibold text-gray-100 mb-4">Add New Stock</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Stock Symbol *</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g., AAPL, RELIANCE"
+                        value={newStockSymbol}
+                        onChange={(e) => setNewStockSymbol(e.target.value.toUpperCase())}
+                        className="w-full px-4 py-3 bg-gray-800/60 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 backdrop-blur-sm transition-all duration-300"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Company Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g., Apple Inc., Reliance Industries"
+                        value={newCompanyName}
+                        onChange={(e) => setNewCompanyName(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-800/60 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 backdrop-blur-sm transition-all duration-300"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Initial Price (₹) *</label>
+                      <input 
+                        type="number" 
+                        placeholder="e.g., 150.00"
+                        value={newStockPrice}
+                        onChange={(e) => setNewStockPrice(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-800/60 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 backdrop-blur-sm transition-all duration-300"
+                        step="0.01"
+                      />
+                    </div>
+                  <div className="flex items-end">
+                    <button
+                        onClick={detectCompanyLogo}
+                        disabled={isDetectingLogo || !newStockSymbol.trim()}
+                        className="w-full px-4 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded-xl transition-all duration-300 disabled:from-gray-800 disabled:to-gray-900 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg hover:shadow-gray-500/30 border border-gray-600/50"
+                    >
+                      {isDetectingLogo ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          <span>Detecting...</span>
+                        </>
+                      ) : (
+                        <span>🔍 Detect Logo</span>
+                      )}
+                    </button>
+                  </div>
                 </div>
+
+                {/* Logo Detection Result */}
+                {logoDetectionResult && (
+                    <div className="mb-4 p-4 bg-gray-900/60 rounded-xl border border-gray-600/50 shadow-lg backdrop-blur-sm">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center border">
+                        {logoDetectionResult.logoUrl ? (
+                          <img
+                            src={logoDetectionResult.logoUrl}
+                            alt={logoDetectionResult.name}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div 
+                          className="w-full h-full flex items-center justify-center text-white font-bold text-xs"
+                          style={{ 
+                            backgroundColor: logoDetectionResult.color,
+                            display: logoDetectionResult.logoUrl ? 'none' : 'flex'
+                          }}
+                        >
+                          {logoDetectionResult.symbol.substring(0, 2)}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-gray-100 font-medium">{logoDetectionResult.name}</p>
+                        <p className="text-gray-300 text-sm">{logoDetectionResult.sector}</p>
+                        {logoDetectionResult.domain && (
+                          <p className="text-blue-400 text-xs">Domain: {logoDetectionResult.domain}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex space-x-3">
+                    <button 
+                      onClick={addNewStock}
+                      className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-green-500/30 transform hover:scale-105"
+                    >
+                      Add Stock
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAddStock(false);
+                        setLogoDetectionResult(null);
+                        setNewStockSymbol("");
+                        setNewStockPrice("");
+                        setNewCompanyName("");
+                      }}
+                      className="px-6 py-3 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-gray-500/30 transform hover:scale-105 border border-gray-600/50"
+                    >
+                      Cancel
+                    </button>
+                </div>
+                
+                  <p className="text-xs text-gray-400 mt-4">
+                    💡 Tip: Add company name for better logo detection. Logos are fetched automatically from company websites.
+                  </p>
               </div>
             )}
             
-            <div className="grid grid-cols-1 gap-4 max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-1 gap-4 max-h-[750px] overflow-y-auto">
               {Object.entries(stocks).map(([sym, data]) => {
                 const hasPendingChange = pendingPrices[sym] !== undefined;
                 const pendingPrice = pendingPrices[sym];
@@ -767,23 +958,23 @@ export default function Admin() {
                 
                 return (
                   <div key={sym} className={`p-4 rounded-lg border-2 transition-colors ${
-                    hasPendingChange ? "bg-yellow-50 border-yellow-300" : "bg-gray-50 border-gray-200"
+                    hasPendingChange ? "bg-gradient-to-br from-yellow-900/60 via-yellow-800/60 to-yellow-900/60 border-yellow-400/50" : "bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 border-gray-600/50"
                   }`}>
                     <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-900">{sym}</span>
+                        <span className="font-medium text-gray-100">{sym}</span>
                         <button
                           onClick={() => deleteStock(sym)}
-                          className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded transition-colors"
+                          className="px-2 py-1 bg-red-900/60 hover:bg-red-800/80 text-red-300 text-xs font-medium rounded transition-colors border border-red-700/50"
                           title="Delete stock"
                         >
                           Delete
                         </button>
                       </div>
                       <div className="text-right">
-                        <span className="text-gray-600">Current: ₹{currentPrice}</span>
+                        <span className="text-gray-300">Current: ₹{currentPrice}</span>
                         {hasPendingChange && (
-                          <div className="text-sm text-yellow-700 font-medium">
+                          <div className="text-sm text-yellow-300 font-medium">
                             Pending: ₹{pendingPrice}
                           </div>
                         )}
@@ -795,7 +986,7 @@ export default function Admin() {
                         type="number" 
                         defaultValue={currentPrice}
                         onChange={(e) => updatePendingPrice(sym, e.target.value)}
-                        className="flex-1 bg-white border border-gray-300 p-2 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 bg-gray-800/60 border border-gray-600/50 p-2 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 placeholder-gray-400 backdrop-blur-sm"
                         step="0.01"
                       />
                       
@@ -819,7 +1010,7 @@ export default function Admin() {
                       ) : (
                         <button
                           disabled
-                          className="px-3 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg"
+                          className="px-3 py-2 bg-gray-800/40 text-gray-500 text-sm font-medium rounded-lg border border-gray-700/50"
                         >
                           No Changes
                         </button>
@@ -832,8 +1023,8 @@ export default function Admin() {
           </div>
 
             {/* MARKET DYNAMICS */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Market Dynamics</h3>
+          <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6">
+            <h3 className="text-lg font-semibold text-gray-100 mb-4">Market Dynamics</h3>
             
             {/* Volume Chart */}
             <div className="space-y-4 mb-6">
@@ -845,10 +1036,10 @@ export default function Admin() {
                 const buyPercentage = totalPressure > 0 ? (buyPressure / totalPressure) * 100 : 50;
                 
                 return (
-                  <div key={symbol} className="p-3 bg-gray-50 rounded-lg">
+                  <div key={symbol} className="p-3 bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 rounded-lg border border-gray-600/50 backdrop-blur-sm">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium text-gray-900">{symbol}</span>
-                      <span className="text-sm text-gray-600">₹{Number(data.price).toFixed(2)}</span>
+                      <span className="font-medium text-gray-100">{symbol}</span>
+                      <span className="text-sm text-gray-300">₹{Number(data.price).toFixed(2)}</span>
                     </div>
                     
                     {/* Buy/Sell Pressure Bar */}
@@ -859,7 +1050,7 @@ export default function Admin() {
                       ></div>
                     </div>
                     
-                    <div className="flex justify-between text-xs text-gray-600">
+                    <div className="flex justify-between text-xs text-gray-400">
                       <span>Buyers: {buyPressure}</span>
                       <span>Vol: {symbolOrderBook.volume || 0}</span>
                       <span>Sellers: {sellPressure}</span>
@@ -871,14 +1062,14 @@ export default function Admin() {
             
             {/* Chaos Mode */}
             <div className="border-t pt-4">
-              <h4 className="font-medium text-gray-900 mb-2">Price Fluctuation</h4>
-              <p className="mb-4 text-sm text-gray-600">Randomly fluctuates prices ±2% every 3 seconds</p>
+              <h4 className="font-medium text-gray-100 mb-2">Price Fluctuation</h4>
+              <p className="mb-4 text-sm text-gray-300">Randomly fluctuates prices ±2% every 3 seconds</p>
               <button 
                 onClick={() => setIsFluctuating(!isFluctuating)}
                 className={`w-full py-3 font-medium rounded-lg transition-colors ${
                   isFluctuating 
                     ? "bg-orange-600 text-white hover:bg-orange-700" 
-                    : "bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-300"
+                    : "bg-gray-800/60 text-gray-100 hover:bg-gray-700/80 border border-gray-600/50"
                 }`}
               >
                 {isFluctuating ? "Stop Fluctuation" : "Start Fluctuation"}
@@ -888,32 +1079,32 @@ export default function Admin() {
         </div>
 
         {/* ROUND HISTORY TABLE */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Round History (Locked Prices)</h3>
+        <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-100 mb-4">Round History (Locked Prices)</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="py-3 px-4 text-sm font-medium text-gray-600">Round</th>
-                  {Object.keys(stocks).map(s => <th key={s} className="py-3 px-4 text-sm font-medium text-gray-600 text-right">{s}</th>)}
-                  <th className="py-3 px-4 text-sm font-medium text-gray-600 text-center">Action</th>
+                <tr className="border-b border-gray-600/50">
+                  <th className="py-3 px-4 text-sm font-medium text-gray-300">Round</th>
+                  {Object.keys(stocks).map(s => <th key={s} className="py-3 px-4 text-sm font-medium text-gray-300 text-right">{s}</th>)}
+                  <th className="py-3 px-4 text-sm font-medium text-gray-300 text-center">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {Object.keys(roundHistory).sort().map(roundKey => (
-                  <tr key={roundKey} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4 font-medium text-gray-900">
+                  <tr key={roundKey} className="border-b border-gray-700/50 hover:bg-gray-800/40">
+                    <td className="py-3 px-4 font-medium text-gray-100">
                       {roundKey.replace("round", "Round ")}
                     </td>
                     {Object.keys(stocks).map(stock => (
-                      <td key={stock} className="py-3 px-4 text-right font-mono text-gray-700">
+                      <td key={stock} className="py-3 px-4 text-right font-mono text-gray-200">
                         ₹{roundHistory[roundKey].prices?.[stock]?.toFixed(2) || "-"}
                       </td>
                     ))}
                     <td className="py-3 px-4 text-center">
                       <button
                         onClick={() => deleteRound(roundKey)}
-                        className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded-lg transition-colors"
+                        className="px-3 py-1.5 bg-red-900/60 hover:bg-red-800/80 text-red-300 text-sm font-medium rounded-lg transition-colors border border-red-700/50"
                       >
                         Delete
                       </button>
@@ -925,7 +1116,7 @@ export default function Admin() {
 
             {/* If no rounds yet */}
             {Object.keys(roundHistory).length === 0 && (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-400">
                 <p>No rounds locked yet. Lock Round 1 to begin tracking history.</p>
               </div>
             )}
@@ -933,9 +1124,9 @@ export default function Admin() {
         </div>
 
         {/* NEWS CREATOR */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">News Publisher</h3>
+            <h3 className="text-lg font-semibold text-gray-100">News Publisher</h3>
             <button 
               onClick={clearAllLiveNews}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg text-sm transition-colors"
@@ -947,14 +1138,14 @@ export default function Admin() {
             value={news} 
             onChange={(e) => setNews(e.target.value)} 
             placeholder="Enter breaking news content..." 
-            className="w-full p-4 border border-gray-300 rounded-lg mb-4 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+            className="w-full p-4 border border-gray-600/50 rounded-lg mb-4 text-gray-100 bg-gray-800/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 placeholder-gray-400 backdrop-blur-sm" 
             rows={4} 
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <select 
               value={severity} 
               onChange={(e) => setSeverity(e.target.value)} 
-              className="p-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="p-3 border border-gray-600/50 rounded-lg text-gray-100 bg-gray-800/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 backdrop-blur-sm"
             >
               <option value="mild">Mild Impact</option>
               <option value="moderate">Moderate Impact</option>
@@ -965,11 +1156,11 @@ export default function Admin() {
               value={impactPercent} 
               onChange={(e) => setImpactPercent(+e.target.value)} 
               placeholder="Impact Percentage" 
-              className="p-3 border border-gray-300 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+              className="p-3 border border-gray-600/50 rounded-lg text-gray-100 bg-gray-800/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 placeholder-gray-400 backdrop-blur-sm" 
             />
           </div>
           <div className="mb-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">Select affected stocks:</p>
+            <p className="text-sm font-medium text-gray-300 mb-2">Select affected stocks:</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {Object.keys(stocks).map(s => (
                 <label key={s} className="flex items-center gap-2 text-sm">
@@ -977,9 +1168,9 @@ export default function Admin() {
                     type="checkbox" 
                     checked={selectedStocks[s] || false} 
                     onChange={(e) => setSelectedStocks({ ...selectedStocks, [s]: e.target.checked })} 
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-600/50 text-blue-400 focus:ring-blue-500 bg-gray-800/60"
                   />
-                  <span className="text-gray-700">{s}</span>
+                  <span className="text-gray-300">{s}</span>
                 </label>
               ))}
             </div>
@@ -994,11 +1185,11 @@ export default function Admin() {
 
         {/* PENDING NEWS LIST */}
         {Object.keys(pendingNews).length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Pending News Items</h3>
+          <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-100 mb-4">Pending News Items</h3>
             <div className="space-y-4">
               {Object.entries(pendingNews).sort(([, a], [, b]) => b.timestamp - a.timestamp).map(([id, n]) => (
-                <div key={id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div key={id} className="bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 rounded-lg p-4 border border-gray-600/50">
                   <div className="mb-3">
                     <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
                       n.severity === 'severe' ? 'bg-red-100 text-red-800' :
@@ -1007,8 +1198,8 @@ export default function Admin() {
                     } mb-2`}>
                       {n.severity.toUpperCase()}
                     </span>
-                    <p className="text-gray-900 font-medium">{n.text}</p>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-gray-100 font-medium">{n.text}</p>
+                    <p className="text-sm text-gray-300 mt-1">
                       Affects: {Object.keys(n.stocks || {}).filter(s => n.stocks[s]).join(", ")} (±{n.impact}%)
                     </p>
                   </div>
@@ -1017,7 +1208,7 @@ export default function Admin() {
                       onClick={() => triggerNewsOnly(id)} 
                       disabled={n.newsTriggered} 
                       className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        n.newsTriggered ? "bg-gray-300 text-gray-500" : "bg-yellow-600 hover:bg-yellow-700 text-white"
+                        n.newsTriggered ? "bg-gray-800/60 text-gray-500" : "bg-yellow-600 hover:bg-yellow-700 text-white"
                       }`}
                     >
                       {n.newsTriggered ? "News Shown" : "Show News"}
@@ -1026,14 +1217,14 @@ export default function Admin() {
                       onClick={() => triggerPriceOnly(id)} 
                       disabled={n.priceTriggered} 
                       className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        n.priceTriggered ? "bg-gray-300 text-gray-500" : "bg-orange-600 hover:bg-orange-700 text-white"
+                        n.priceTriggered ? "bg-gray-800/60 text-gray-500" : "bg-orange-600 hover:bg-orange-700 text-white"
                       }`}
                     >
                       {n.priceTriggered ? "Price Updated" : "Trigger Price"}
                     </button>
                     <button 
                       onClick={() => deleteNews(id)} 
-                      className="px-4 py-2 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
+                      className="px-4 py-2 text-sm font-medium bg-red-900/60 hover:bg-red-800/80 text-red-300 rounded-lg transition-colors border border-red-700/50"
                     >
                       Delete
                     </button>
@@ -1045,9 +1236,9 @@ export default function Admin() {
         )}
 
         {/* USER MANAGEMENT */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6 mb-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">User Management ({participants.length} users)</h3>
+            <h3 className="text-lg font-semibold text-gray-100">User Management ({participants.length} users)</h3>
             <div className="flex gap-2">
               <button 
                 onClick={() => setShowAddUser(!showAddUser)}
@@ -1057,7 +1248,7 @@ export default function Admin() {
               </button>
               <button 
                 onClick={resetAllPortfolios} 
-                className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded-lg text-sm transition-colors"
+                className="px-4 py-2 bg-red-900/60 hover:bg-red-800/80 text-red-300 font-medium rounded-lg text-sm transition-colors border border-red-700/50"
               >
                 Reset All Data
               </button>
@@ -1066,22 +1257,22 @@ export default function Admin() {
 
           {/* ADD USER FORM */}
           {showAddUser && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-              <h4 className="text-md font-semibold text-gray-900 mb-3">Add New User</h4>
+            <div className="bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 border border-gray-600/50 rounded-lg p-4 mb-4 backdrop-blur-sm">
+              <h4 className="text-md font-semibold text-gray-100 mb-3">Add New User</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                 <input 
                   type="email" 
                   placeholder="Email address"
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="px-3 py-2 border border-gray-600/50 rounded-lg text-gray-100 bg-gray-800/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 placeholder-gray-400 backdrop-blur-sm"
                 />
                 <input 
                   type="text" 
                   placeholder="Full Name"
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="px-3 py-2 border border-gray-600/50 rounded-lg text-gray-100 bg-gray-800/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 placeholder-gray-400 backdrop-blur-sm"
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1090,7 +1281,7 @@ export default function Admin() {
                   placeholder="Password (min 6 chars)"
                   value={newUserPassword}
                   onChange={(e) => setNewUserPassword(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="px-3 py-2 border border-gray-600/50 rounded-lg text-gray-100 bg-gray-800/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 placeholder-gray-400 backdrop-blur-sm"
                   minLength="6"
                 />
                 <input 
@@ -1098,7 +1289,7 @@ export default function Admin() {
                   placeholder="Starting Cash"
                   value={newUserCash}
                   onChange={(e) => setNewUserCash(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="px-3 py-2 border border-gray-600/50 rounded-lg text-gray-100 bg-gray-800/60 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 placeholder-gray-400 backdrop-blur-sm"
                   step="1000"
                 />
                 <button 
@@ -1112,38 +1303,41 @@ export default function Admin() {
           )}
           <div className="space-y-2 max-h-80 overflow-y-auto">
             {participants.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-400">
                 <p>No users found. Add your first user above.</p>
               </div>
             ) : (
               participants
                 .sort((a, b) => getPortfolioValue(b) - getPortfolioValue(a))
                 .map((p, index) => (
-                <div key={p.uid} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <div key={p.uid} className="flex justify-between items-center bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 p-3 rounded-lg border border-gray-600/50 backdrop-blur-sm">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-500">#{index + 1}</span>
+                    <span className="text-sm font-medium text-gray-400">#{index + 1}</span>
                     <div>
-                      <div className="font-medium text-gray-900">{p.name || "Player"}</div>
-                      <div className="text-xs text-gray-500">{p.email || "No email"}</div>
+                      <div className="font-medium text-gray-100">{p.name || "Player"}</div>
+                      <div className="text-xs text-gray-400">{p.email || "No email"}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <div className="font-mono font-medium text-gray-900">₹{getPortfolioValue(p).toLocaleString()}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="font-mono font-medium text-gray-100">₹{getPortfolioValue(p).toLocaleString()}</div>
+                      <div className="text-xs text-gray-400">
                         Cash: ₹{(p.cash || 0).toLocaleString()} | Holdings: {Object.keys(p.holdings || {}).length}
                       </div>
+
                     </div>
-                    <button
-                      onClick={() => {
-                        console.log("User data:", p);
-                        deleteUser(p.uid, p.name || "Player", p.email || "");
-                      }}
-                      className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-sm font-medium rounded-lg transition-colors"
-                      title="Delete user"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => {
+                          console.log("User data:", p);
+                          deleteUser(p.uid, p.name || "Player", p.email || "");
+                        }}
+                        className="px-3 py-1 bg-red-900/60 hover:bg-red-800/80 text-red-300 text-xs font-medium rounded transition-colors border border-red-700/50"
+                        title="Delete user"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -1151,9 +1345,43 @@ export default function Admin() {
           </div>
         </div>
 
+        {/* SYSTEM STATISTICS DASHBOARD */}
+        <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-100 mb-4">System Statistics Overview</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div className="bg-gradient-to-br from-blue-900/60 to-indigo-900/60 rounded-lg p-4 border border-blue-600/50 backdrop-blur-sm">
+              <p className="text-sm font-medium text-blue-300 mb-1">System Uptime</p>
+              <p className="text-2xl font-bold text-blue-100">
+                100%
+              </p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-900/60 to-pink-900/60 rounded-lg p-4 border border-purple-600/50 backdrop-blur-sm">
+              <p className="text-sm font-medium text-purple-300 mb-1">Active Users</p>
+              <p className="text-2xl font-bold text-purple-100">
+                {participants.length}
+              </p>
+            </div>
+            <div className="bg-gradient-to-br from-green-900/60 to-emerald-900/60 rounded-lg p-4 border border-green-600/50 backdrop-blur-sm">
+              <p className="text-sm font-medium text-green-300 mb-1">Active Positions</p>
+              <p className="text-2xl font-bold text-green-100">
+                0
+              </p>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-900/60 to-orange-900/60 rounded-lg p-4 border border-yellow-600/50 backdrop-blur-sm">
+              <p className="text-sm font-medium text-yellow-600 mb-1">Total Trades Today</p>
+              <p className="text-2xl font-bold text-yellow-900">
+                0
+              </p>
+            </div>
+          </div>
+
+
+        </div>
+
         {/* ROUND NAVIGATION */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Round Management</h3>
+        <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-xl shadow-2xl shadow-white/10 border border-gray-400/30 p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-100 mb-4">Round Management</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button 
               onClick={prevRoundFull} 
@@ -1182,13 +1410,14 @@ export default function Admin() {
           </div>
         </div>
 
-        {message && (
-          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-            <div className="bg-white shadow-lg border border-gray-200 px-6 py-3 rounded-lg">
-              <p className="text-sm font-medium text-gray-900">{message}</p>
+          {message && (
+            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+              <div className="bg-gradient-to-br from-black/90 via-gray-900/90 to-black/90 backdrop-blur-xl shadow-2xl border border-gray-400/30 px-6 py-4 rounded-xl">
+                <p className="text-sm font-medium text-gray-100">{message}</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

@@ -14,11 +14,15 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono'
 })
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#000000'
+}
+
 export const metadata = {
   title: 'FIC Hansraj Stock Exchange - Live Trading Simulation',
   description: 'Trade. Compete. Learn — in a live 8-round market simulation with real-time prices and ₹1,00,000 virtual capital.',
-  viewport: 'width=device-width, initial-scale=1',
-  themeColor: '#000000',
   metadataBase: new URL('https://fic-hansraj-stock-exchange.vercel.app'),
   openGraph: {
     title: 'FIC Hansraj Stock Exchange',
@@ -44,7 +48,7 @@ export default function RootLayout({ children }) {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className={`${inter.className} bg-black text-white min-h-screen overflow-x-hidden antialiased`}>
+      <body className="bg-black text-white min-h-screen overflow-x-hidden antialiased font-sans">
         <div className="fixed inset-0 bg-gradient-to-br from-black via-gray-950 to-black -z-10" />
         <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-900/20 via-transparent to-transparent -z-10" />
         {children}

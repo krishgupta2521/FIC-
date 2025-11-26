@@ -1,0 +1,42 @@
+<svg width="120" height="60" viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="metalGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8f9fa;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#e9ecef;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#dee2e6;stop-opacity:1" />
+      <stop offset="75%" style="stop-color:#adb5bd;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6c757d;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="shadowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#343a40;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#212529;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- F Letter -->
+  <g>
+    <!-- F - Outer border -->
+    <path d="M8 8 L8 52 L12 52 L12 32 L28 32 L28 28 L12 28 L12 12 L32 12 L32 8 Z" fill="url(#shadowGradient)" stroke="#000" stroke-width="1"/>
+    <!-- F - Inner fill -->
+    <path d="M10 10 L10 50 L14 50 L14 30 L26 30 L26 26 L14 26 L14 14 L30 14 L30 10 Z" fill="url(#metalGradient)"/>
+    <!-- F - Top decoration -->
+    <circle cx="18" cy="6" r="3" fill="url(#shadowGradient)" stroke="#000" stroke-width="1"/>
+    <circle cx="18" cy="6" r="2" fill="url(#metalGradient)"/>
+  </g>
+  
+  <!-- I Letter -->
+  <g>
+    <!-- I - Outer border -->
+    <path d="M40 8 L40 12 L48 12 L48 48 L40 48 L40 52 L60 52 L60 48 L52 48 L52 12 L60 12 L60 8 Z" fill="url(#shadowGradient)" stroke="#000" stroke-width="1"/>
+    <!-- I - Inner fill -->
+    <path d="M42 10 L42 14 L46 14 L46 46 L42 46 L42 50 L58 50 L58 46 L54 46 L54 14 L58 14 L58 10 Z" fill="url(#metalGradient)"/>
+  </g>
+  
+  <!-- C Letter -->
+  <g>
+    <!-- C - Outer border -->
+    <path d="M68 8 L68 15 L72 15 L72 12 L88 12 L88 16 L92 16 L92 12 L92 8 L68 8 Z M68 15 L68 45 L72 45 L72 48 L88 48 L88 44 L92 44 L92 48 L92 52 L68 52 L68 45 Z M68 15 L68 8 L72 8 L72 12 L68 12 Z M68 48 L68 52 L72 52 L72 48 Z M88 12 L88 8 L92 8 L92 12 Z M88 48 L88 52 L92 52 L92 48 Z" fill="url(#shadowGradient)" stroke="#000" stroke-width="1"/>
+    <!-- C - Inner fill -->
+    <path d="M70 10 L70 17 L74 17 L74 14 L86 14 L86 18 L90 18 L90 14 L90 10 L70 10 Z M70 17 L70 43 L74 43 L74 46 L86 46 L86 42 L90 42 L90 46 L90 50 L70 50 L70 43 Z" fill="url(#metalGradient)"/>
+  </g>
+</svg>

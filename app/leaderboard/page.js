@@ -190,21 +190,29 @@ export default function Leaderboard() {
           width: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(0, 0, 0, 0.3);
           border-radius: 10px;
+          backdrop-filter: blur(8px);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #374151;
+          background: linear-gradient(135deg, rgba(156, 163, 175, 0.8), rgba(107, 114, 128, 0.9));
           border-radius: 6px;
+          box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #4b5563;
+          background: linear-gradient(135deg, rgba(156, 163, 175, 0.9), rgba(107, 114, 128, 1));
+          box-shadow: 0 4px 8px rgba(255, 255, 255, 0.2);
         }
       `}</style>
       
-      <div className="min-h-screen bg-[#141519]">
+      <div className="min-h-screen bg-gradient-to-br from-[#0f1114] via-[#141519] to-[#1a1d23] relative overflow-hidden">
+        {/* Premium Background Effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/6 w-[400px] h-[400px] bg-gradient-to-r from-gray-500/10 via-white/5 to-gray-400/8 rounded-full blur-[80px] animate-pulse" style={{animationDuration: '8s'}} />
+          <div className="absolute bottom-1/3 right-1/6 w-[350px] h-[350px] bg-gradient-to-l from-gray-600/8 via-white/3 to-gray-500/5 rounded-full blur-[70px] animate-pulse" style={{animationDuration: '12s', animationDelay: '2s'}} />
+        </div>
         {/* Header */}
-        <header className="bg-[#1a1d23] border-b border-gray-700 sticky top-0 z-50 shadow-lg">
+        <header className="bg-gradient-to-r from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl border-b border-gray-400/30 sticky top-0 z-50 shadow-2xl shadow-white/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-6">
@@ -229,8 +237,8 @@ export default function Leaderboard() {
                 </button>
                 
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">R</span>
+                  <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 via-yellow-400 to-orange-500 rounded-lg flex items-center justify-center shadow-lg shadow-yellow-500/30">
+                    <Trophy size={20} className="text-white" />
                   </div>
                   <div>
                     <h1 className="text-lg font-bold text-gray-100">Leaderboard</h1>
@@ -259,7 +267,7 @@ export default function Leaderboard() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
           {/* Top 3 Podium */}
           {leaderboardData.length >= 3 && (
-            <div className="bg-[#1a1d23] rounded-xl border border-gray-700 p-8">
+            <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-2xl border border-gray-400/30 shadow-2xl shadow-white/10 p-8">
               <div className="text-center mb-8">
                 <div className="flex items-center justify-center space-x-2 mb-2">
                   <Flame size={24} className="text-orange-500" />
@@ -272,7 +280,7 @@ export default function Leaderboard() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* 2nd Place */}
                 <div className="order-1 md:order-1">
-                  <div className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl p-6 border-2 border-gray-500 text-center transform hover:scale-105 transition-transform">
+                  <div className="bg-gradient-to-br from-gray-700/80 via-gray-600/30 to-gray-800/80 backdrop-blur-md rounded-xl p-6 border-2 border-gray-500/60 shadow-2xl shadow-gray-400/20 text-center transform hover:scale-105 hover:shadow-gray-300/30 transition-all duration-300">
                     <div className="flex justify-center mb-4">
                       <div className="w-16 h-16 bg-gradient-to-r from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
                         <Medal size={32} className="text-white" />
@@ -293,7 +301,7 @@ export default function Leaderboard() {
 
                 {/* 1st Place */}
                 <div className="order-2 md:order-2">
-                  <div className="bg-gradient-to-br from-yellow-600 to-yellow-700 rounded-xl p-6 border-2 border-yellow-400 text-center transform hover:scale-105 transition-transform relative">
+                  <div className="bg-gradient-to-br from-yellow-600/90 via-yellow-500/40 to-yellow-700/90 backdrop-blur-md rounded-xl p-6 border-2 border-yellow-400/70 shadow-2xl shadow-yellow-500/40 text-center transform hover:scale-105 hover:shadow-yellow-400/50 transition-all duration-300 relative">
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <div className="bg-yellow-400 text-yellow-900 px-4 py-1 rounded-full text-xs font-bold">
                         👑 CHAMPION
@@ -319,7 +327,7 @@ export default function Leaderboard() {
 
                 {/* 3rd Place */}
                 <div className="order-3 md:order-3">
-                  <div className="bg-gradient-to-br from-orange-700 to-orange-800 rounded-xl p-6 border-2 border-orange-500 text-center transform hover:scale-105 transition-transform">
+                  <div className="bg-gradient-to-br from-orange-700/80 via-orange-600/30 to-orange-800/80 backdrop-blur-md rounded-xl p-6 border-2 border-orange-500/60 shadow-2xl shadow-orange-400/20 text-center transform hover:scale-105 hover:shadow-orange-300/30 transition-all duration-300">
                     <div className="flex justify-center mb-4">
                       <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center">
                         <Award size={32} className="text-white" />
@@ -342,7 +350,7 @@ export default function Leaderboard() {
           )}
 
           {/* Full Rankings Table */}
-          <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
+          <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-2xl border border-gray-400/30 shadow-2xl shadow-white/10">
             <div className="p-4 border-b border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -360,7 +368,7 @@ export default function Leaderboard() {
             
             <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full">
-                <thead className="bg-gray-800 border-b border-gray-700">
+                <thead className="bg-gradient-to-r from-gray-800/60 via-gray-700/60 to-gray-800/60 border-b border-gray-600/50 backdrop-blur-sm">
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-100">Rank</th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-100">Player</th>
@@ -380,8 +388,8 @@ export default function Leaderboard() {
                     return (
                       <tr 
                         key={player.userId} 
-                        className={`hover:bg-gray-800/50 transition-colors ${
-                          isCurrentUser ? "bg-blue-900/20 border-l-4 border-l-blue-500" : ""
+                        className={`hover:bg-gradient-to-r hover:from-gray-800/60 hover:via-gray-700/30 hover:to-gray-800/60 transition-all duration-300 border-b border-gray-600/30 ${
+                          isCurrentUser ? "bg-gradient-to-r from-blue-900/30 via-blue-800/20 to-blue-900/30 border-l-4 border-l-blue-500/80" : ""
                         }`}
                       >
                         <td className="px-4 py-4">
@@ -451,12 +459,12 @@ export default function Leaderboard() {
 
           {/* Statistics Summary */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="bg-[#1a1d23] rounded-xl p-6 border border-gray-700">
+            <div className="bg-gradient-to-br from-black/80 via-gray-900/60 to-black/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-400/30 shadow-xl shadow-white/10 hover:shadow-white/20 transition-all duration-300">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                  <TrendingUp size={20} className="text-white" />
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center shadow-lg">
+                  <Crown size={20} className="text-white" />
                 </div>
-                <span className="text-gray-100 font-medium">Top Portfolio</span>
+                <span className="text-gray-100 font-medium">Top Performer</span>
               </div>
               <p className="text-2xl font-bold text-white">
                 ₹{leaderboardData[0]?.portfolioValue.toLocaleString("en-IN") || "0"}
@@ -466,9 +474,9 @@ export default function Leaderboard() {
               </p>
             </div>
 
-            <div className="bg-[#1a1d23] rounded-xl p-6 border border-gray-700">
+            <div className="bg-gradient-to-br from-black/80 via-gray-900/60 to-black/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-400/30 shadow-xl shadow-white/10 hover:shadow-white/20 transition-all duration-300">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center shadow-lg">
                   <Users size={20} className="text-white" />
                 </div>
                 <span className="text-gray-100 font-medium">Total Players</span>
@@ -477,9 +485,9 @@ export default function Leaderboard() {
               <p className="text-sm text-gray-400">Active participants</p>
             </div>
 
-            <div className="bg-[#1a1d23] rounded-xl p-6 border border-gray-700">
+            <div className="bg-gradient-to-br from-black/80 via-gray-900/60 to-black/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-400/30 shadow-xl shadow-white/10 hover:shadow-white/20 transition-all duration-300">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center shadow-lg">
                   <BarChart3 size={20} className="text-white" />
                 </div>
                 <span className="text-gray-100 font-medium">Average Portfolio</span>
@@ -493,9 +501,9 @@ export default function Leaderboard() {
               <p className="text-sm text-gray-400">Market average</p>
             </div>
 
-            <div className="bg-[#1a1d23] rounded-xl p-6 border border-gray-700">
+            <div className="bg-gradient-to-br from-black/80 via-gray-900/60 to-black/80 backdrop-blur-xl rounded-2xl p-6 border border-gray-400/30 shadow-xl shadow-white/10 hover:shadow-white/20 transition-all duration-300">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-700 rounded-lg flex items-center justify-center shadow-lg">
                   <Flame size={20} className="text-white" />
                 </div>
                 <span className="text-gray-100 font-medium">Current Round</span>

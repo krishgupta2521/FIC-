@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { db, auth } from "@/lib/firebase";
-import { ref, onValue, set, runTransaction, push, get } from "firebase/database";
+import { ref, onValue, set, runTransaction, push, get, update } from "firebase/database";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { 
   TrendingUp, 
@@ -32,6 +32,7 @@ import {
   Trophy
 } from 'lucide-react';
 import Link from 'next/link';
+import CompanyLogo from '../components/CompanyLogo';
 
 export default function Dashboard() {
   const [stocks, setStocks] = useState({});
@@ -196,24 +197,38 @@ export default function Dashboard() {
     const unsubscribeOrder = onValue(orderRef, (snap) => {
       setOrderBook(snap.val() || {});
     });
+    
+    // Market pressure decay - runs every 30 seconds
+    const decayInterval = setInterval(decayMarketPressure, 30000);
 
     return () => {
       unsubscribeMarket();
       unsubscribeOrder();
+      clearInterval(decayInterval);
     };
   }, []);
 
-  // --- MARKET DYNAMICS FUNCTIONS ---
+  // --- ENHANCED MARKET DYNAMICS FUNCTIONS ---
   const updateMarketDynamics = async (symbol, type, quantity, price) => {
     try {
       const orderBookRef = ref(db, `orderBook/${symbol}`);
-      const snapshot = await get(orderBookRef);
+      const marketDataRef = ref(db, `marketData/${symbol}`);
       
-      const currentData = snapshot.exists() ? snapshot.val() : { buyers: 0, sellers: 0, volume: 0 };
+      // Get current order book and market data
+      const [orderSnapshot, marketSnapshot] = await Promise.all([
+        get(orderBookRef),
+        get(marketDataRef)
+      ]);
       
-      // Update buyer/seller pressure
-      let newBuyers = currentData.buyers || 0;
-      let newSellers = currentData.sellers || 0;
+      const currentOrderData = orderSnapshot.exists() ? orderSnapshot.val() : 
+        { buyers: 0, sellers: 0, volume: 0, totalValue: 0, trades: 0 };
+      const currentMarketData = marketSnapshot.exists() ? marketSnapshot.val() : 
+        { volatility: 0.02, momentum: 0, avgPrice: price, priceHistory: [] };
+      
+      // Update trading statistics
+      let newBuyers = currentOrderData.buyers || 0;
+      let newSellers = currentOrderData.sellers || 0;
+      const tradeValue = quantity * price;
       
       if (type === "BUY") {
         newBuyers += quantity;
@@ -221,42 +236,149 @@ export default function Dashboard() {
         newSellers += quantity;
       }
       
-      // Update volume
-      const newVolume = (currentData.volume || 0) + quantity;
+      // Enhanced volume and value tracking
+      const newVolume = (currentOrderData.volume || 0) + quantity;
+      const newTotalValue = (currentOrderData.totalValue || 0) + tradeValue;
+      const newTrades = (currentOrderData.trades || 0) + 1;
       
-      // Calculate price impact based on buy/sell pressure
+      // Calculate Volume-Weighted Average Price (VWAP)
+      const vwap = newTotalValue / newVolume;
+      
+      // Calculate market pressure with sophisticated algorithm
       const totalPressure = newBuyers + newSellers;
       const buyPressure = totalPressure > 0 ? newBuyers / totalPressure : 0.5;
       
-      // Price impact formula: ±0.5% to ±3% based on pressure imbalance and volume
+      // Enhanced price impact calculation
       const pressureImbalance = Math.abs(buyPressure - 0.5) * 2; // 0 to 1
-      const volumeImpact = Math.min(quantity / 100, 0.02); // Max 2% from volume
-      const priceImpact = (pressureImbalance * 0.025) + volumeImpact; // 0% to 4.5%
       
+      // Volume impact: Large trades have more impact
+      const relativeVolume = Math.min(quantity / 50, 1); // Normalize to 50 shares as base
+      const volumeImpact = relativeVolume * 0.015; // Up to 1.5% impact from volume
+      
+      // Market depth simulation: More trades = less impact per trade
+      const liquidityFactor = Math.max(0.3, 1 - (newTrades / 100)); // Decreases impact as liquidity increases
+      
+      // Momentum factor: Consecutive same-direction trades amplify impact
+      const currentMomentum = currentMarketData.momentum || 0;
+      const momentumDirection = type === "BUY" ? 1 : -1;
+      const newMomentum = Math.max(-3, Math.min(3, currentMomentum + (momentumDirection * 0.3)));
+      const momentumImpact = Math.abs(newMomentum) * 0.005; // Up to 1.5% momentum impact
+      
+      // Volatility adjustment: Recent price changes affect future sensitivity
+      const currentVolatility = currentMarketData.volatility || 0.02;
+      const volatilityMultiplier = 1 + (currentVolatility * 10); // Higher volatility = more price movement
+      
+      // Combined price impact formula
+      let baseImpact = (pressureImbalance * 0.02) + volumeImpact + momentumImpact;
+      baseImpact *= liquidityFactor * volatilityMultiplier;
+      
+      // Cap maximum impact per trade
+      const maxImpact = Math.min(baseImpact, 0.08); // Maximum 8% impact per trade
+      
+      // Calculate new price
       let newPrice = price;
-      if (buyPressure > 0.6) {
+      if (buyPressure > 0.55) {
         // More buyers - price goes up
-        newPrice = price * (1 + priceImpact);
-      } else if (buyPressure < 0.4) {
+        newPrice = price * (1 + maxImpact * (buyPressure - 0.5) * 2);
+      } else if (buyPressure < 0.45) {
         // More sellers - price goes down  
-        newPrice = price * (1 - priceImpact);
+        newPrice = price * (1 - maxImpact * (0.5 - buyPressure) * 2);
       }
       
-      // Update order book
+      // Update price history for volatility calculation
+      const priceHistory = currentMarketData.priceHistory || [];
+      priceHistory.push({ price: newPrice, timestamp: Date.now() });
+      
+      // Keep only last 20 price points
+      if (priceHistory.length > 20) {
+        priceHistory.shift();
+      }
+      
+      // Calculate new volatility based on recent price movements
+      let newVolatility = 0.02; // Base volatility
+      if (priceHistory.length > 3) {
+        const recentPrices = priceHistory.slice(-5).map(p => p.price);
+        const priceChanges = [];
+        for (let i = 1; i < recentPrices.length; i++) {
+          priceChanges.push(Math.abs((recentPrices[i] - recentPrices[i-1]) / recentPrices[i-1]));
+        }
+        newVolatility = priceChanges.reduce((a, b) => a + b, 0) / priceChanges.length;
+        newVolatility = Math.max(0.005, Math.min(0.1, newVolatility)); // Cap between 0.5% and 10%
+      }
+      
+      // Update order book with enhanced data
       await set(orderBookRef, {
         buyers: newBuyers,
         sellers: newSellers,
         volume: newVolume,
-        lastUpdate: Date.now()
+        totalValue: newTotalValue,
+        trades: newTrades,
+        vwap: Number(vwap.toFixed(2)),
+        buyPressure: Number(buyPressure.toFixed(3)),
+        lastUpdate: Date.now(),
+        lastTradeType: type,
+        lastTradeQuantity: quantity
+      });
+      
+      // Update market data
+      await set(marketDataRef, {
+        volatility: newVolatility,
+        momentum: newMomentum,
+        avgPrice: Number(vwap.toFixed(2)),
+        priceHistory: priceHistory,
+        lastImpact: maxImpact,
+        liquidityFactor: liquidityFactor
       });
       
       // Update stock price if there's significant impact
-      if (Math.abs(newPrice - price) > 0.01) {
-        await set(ref(db, `stocks/${symbol}/price`), Number(newPrice.toFixed(2)));
+      if (Math.abs(newPrice - price) > 0.005) { // Lowered threshold for more responsive pricing
+        const finalPrice = Number(newPrice.toFixed(2));
+        await set(ref(db, `stocks/${symbol}/price`), finalPrice);
+        
+        // Log significant price movements
+        if (Math.abs(newPrice - price) > 0.02 * price) {
+          console.log(`📈 ${symbol}: ₹${price} → ₹${finalPrice} (${((newPrice - price) / price * 100).toFixed(2)}%) - Volume: ${quantity}, Pressure: ${buyPressure.toFixed(2)}`);
+        }
       }
       
     } catch (err) {
-      console.error("Market dynamics update failed:", err);
+      console.error("Enhanced market dynamics update failed:", err);
+    }
+  };
+  
+  // Market decay function to gradually reduce order book pressure
+  const decayMarketPressure = async () => {
+    try {
+      const orderBookSnapshot = await get(ref(db, 'orderBook'));
+      if (!orderBookSnapshot.exists()) return;
+      
+      const orderBookData = orderBookSnapshot.val();
+      const updates = {};
+      
+      Object.keys(orderBookData).forEach(symbol => {
+        const data = orderBookData[symbol];
+        if (data && data.lastUpdate) {
+          const timeSinceUpdate = Date.now() - data.lastUpdate;
+          
+          // Decay pressure over time (5 minutes = 50% reduction)
+          if (timeSinceUpdate > 30000) { // 30 seconds
+            const decayFactor = Math.exp(-timeSinceUpdate / 300000); // 5-minute half-life
+            
+            updates[symbol] = {
+              ...data,
+              buyers: Math.max(0, (data.buyers || 0) * decayFactor),
+              sellers: Math.max(0, (data.sellers || 0) * decayFactor)
+            };
+          }
+        }
+      });
+      
+      if (Object.keys(updates).length > 0) {
+        await update(ref(db, 'orderBook'), updates);
+      }
+      
+    } catch (err) {
+      console.error("Market pressure decay failed:", err);
     }
   };
 
@@ -353,31 +475,59 @@ export default function Dashboard() {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: #4b5563;
         }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        @media (max-width: 1024px) {
+          .nav-container {
+            overflow-x: auto;
+            white-space: nowrap;
+          }
+          .nav-container::-webkit-scrollbar {
+            display: none;
+          }
+        }
       `}</style>
-      <div className="min-h-screen bg-[#141519] relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-[#0f1114] via-[#141519] to-[#1a1d23] relative overflow-hidden">
+        {/* Premium Background Effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/6 w-[600px] h-[600px] bg-gradient-to-r from-emerald-500/5 via-teal-400/3 to-cyan-400/2 rounded-full blur-[120px] animate-pulse" style={{animationDuration: '8s'}} />
+          <div className="absolute bottom-1/3 right-1/6 w-[500px] h-[500px] bg-gradient-to-l from-blue-500/5 via-indigo-400/3 to-violet-400/2 rounded-full blur-[100px] animate-pulse" style={{animationDuration: '12s', animationDelay: '2s'}} />
+          <div className="absolute top-2/3 left-1/2 w-[400px] h-[400px] bg-gradient-to-t from-purple-500/4 via-fuchsia-400/2 to-pink-400/1 rounded-full blur-[90px] animate-pulse" style={{animationDuration: '10s', animationDelay: '4s'}} />
+        </div>
 
-      {/* Modern Glassmorphism Header */}
-      <header className="bg-[#1a1d23] border-b border-gray-700 sticky top-0 z-50 shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <BarChart3 size={20} className="text-white" />
+      {/* Enhanced Premium Header */}
+      <header className="bg-gradient-to-r from-[#1a1d23]/95 via-[#1f2128]/95 to-[#1a1d23]/95 border-b border-gray-600/50 sticky top-0 z-50 shadow-2xl backdrop-blur-xl">
+        <div className="max-w-full mx-auto px-2 sm:px-4 lg:px-6">
+          <div className="flex justify-between items-center h-20 gap-2">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center justify-center space-x-3 bg-gradient-to-r from-black/90 via-gray-900/90 to-black/90 px-4 py-2 h-14 rounded-2xl border border-gray-400/30 backdrop-blur-sm shadow-xl shadow-white/10">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-300 to-white rounded-lg blur-sm opacity-60"></div>
+                  <div className="relative w-8 h-8 bg-gradient-to-br from-gray-300 via-silver-400 to-white rounded-lg flex items-center justify-center shadow-lg">
+                    <BarChart3 size={16} className="text-black" />
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-lg font-bold text-gray-100">FIC Hansraj Stock Exchange</h1>
-                  <p className="text-xs text-gray-400 -mt-0.5">Live Trading Platform</p>
+                <div className="hidden lg:block">
+                  <h1 className="text-base font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">FIC Hansraj Stock Exchange</h1>
+                  <p className="text-xs text-gray-300 font-medium -mt-0.5">Live Trading Platform</p>
+                </div>
+                <div className="lg:hidden">
+                  <h1 className="text-sm font-bold bg-gradient-to-r from-white via-gray-200 to-gray-300 bg-clip-text text-transparent">FIC Hansraj</h1>
                 </div>
               </div>
               
               {/* Enhanced Market Status Indicator */}
-              <div className="flex items-center space-x-2 px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg">
+              <div className="flex items-center justify-center space-x-2 px-3 py-2 h-14 bg-gradient-to-r from-black/90 via-gray-900/90 to-black/90 border border-gray-400/30 rounded-2xl backdrop-blur-sm shadow-xl shadow-white/10">
                 <div className={`w-2 h-2 rounded-full ${
-                  isFrozen || timerData?.isPaused ? "bg-red-500" : "bg-green-500"
+                  isFrozen || timerData?.isPaused ? "bg-red-400 animate-pulse" : "bg-white animate-pulse shadow-white/50"
                 }`}></div>
-                <span className={`text-sm font-medium ${
-                  isFrozen || timerData?.isPaused ? "text-red-400" : "text-green-400"
+                <span className={`text-sm font-bold whitespace-nowrap ${
+                  isFrozen || timerData?.isPaused ? "text-red-400" : "text-white"
                 }`}>
                   {isFrozen ? "Frozen" : timerData?.isPaused ? "Paused" : "Live"}
                 </span>
@@ -396,14 +546,16 @@ export default function Dashboard() {
                   }, 600);
                 }}
                 disabled={isNavigating}
-                className="group flex items-center space-x-2 px-4 py-2.5 text-sm font-medium text-gray-300 hover:text-white bg-gradient-to-r from-gray-800 to-gray-750 hover:from-blue-600 hover:to-blue-700 rounded-xl border border-gray-600 hover:border-blue-500 transition-all duration-300 shadow-lg hover:shadow-blue-500/25 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="group flex items-center justify-center space-x-2 px-4 py-2 min-w-[120px] h-14 text-sm font-semibold text-gray-300 hover:text-white bg-gradient-to-r from-black/80 via-gray-900/80 to-black/80 hover:from-gray-600 hover:via-gray-500 hover:to-gray-400 rounded-2xl border border-gray-400/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-white/25 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed transform hover:-translate-y-1"
               >
-                {isNavigating ? (
-                  <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Activity size={16} className="group-hover:rotate-12 transition-transform duration-300" />
-                )}
-                <span className="hidden sm:inline">{isNavigating ? 'Loading...' : 'Trade History'}</span>
+                <div className="w-6 h-6 bg-gradient-to-r from-gray-400/20 to-white/20 rounded-lg flex items-center justify-center group-hover:from-gray-300 group-hover:to-white transition-all duration-300">
+                  {isNavigating ? (
+                    <div className="w-3 h-3 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Activity size={14} className="group-hover:rotate-12 transition-transform duration-300 text-gray-400 group-hover:text-black" />
+                  )}
+                </div>
+                <span className="hidden lg:inline font-bold tracking-wide whitespace-nowrap text-xs">{isNavigating ? 'Loading...' : 'Trade History'}</span>
               </button>
 
               <button
@@ -416,41 +568,61 @@ export default function Dashboard() {
                   }, 600);
                 }}
                 disabled={isNavigating}
-                className="group flex items-center space-x-2 px-4 py-2.5 text-sm font-medium text-gray-300 hover:text-white bg-gradient-to-r from-gray-800/90 via-gray-750/90 to-gray-800/90 hover:from-amber-600 hover:via-yellow-600 hover:to-orange-600 rounded-xl border border-gray-600/60 hover:border-amber-400/80 transition-all duration-300 shadow-lg hover:shadow-amber-500/30 hover:scale-[1.02] backdrop-blur-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                className="group flex items-center justify-center space-x-2 px-4 py-2 min-w-[120px] h-14 text-sm font-semibold text-gray-300 hover:text-white bg-gradient-to-r from-black/80 via-gray-900/80 to-black/80 hover:from-gray-600 hover:via-gray-500 hover:to-gray-400 rounded-2xl border border-gray-400/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-white/25 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed transform hover:-translate-y-1"
               >
-                {isNavigating ? (
-                  <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Trophy size={16} className="group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 drop-shadow-sm" />
-                )}
-                <span className="hidden sm:inline font-semibold tracking-wide">{isNavigating ? 'Loading...' : 'Leaderboard'}</span>
+                <div className="w-6 h-6 bg-gradient-to-r from-gray-400/20 to-white/20 rounded-lg flex items-center justify-center group-hover:from-gray-300 group-hover:to-white transition-all duration-300">
+                  {isNavigating ? (
+                    <div className="w-3 h-3 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Trophy size={14} className="group-hover:rotate-12 group-hover:scale-110 transition-all duration-300 text-gray-400 group-hover:text-black drop-shadow-sm" />
+                  )}
+                </div>
+                <span className="hidden lg:inline font-bold tracking-wide whitespace-nowrap text-xs">{isNavigating ? 'Loading...' : 'Leaderboard'}</span>
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  setMessage('F&O feature is currently unavailable');
+                  setTimeout(() => setMessage(''), 3000);
+                }}
+                disabled={true}
+                className="group flex items-center justify-center space-x-2 px-4 py-2 min-w-[120px] h-14 text-sm font-semibold text-gray-500 bg-gradient-to-r from-gray-800/50 via-gray-700/50 to-gray-800/50 rounded-2xl border border-gray-600/30 backdrop-blur-sm opacity-50 cursor-not-allowed"
+              >
+                <div className="w-6 h-6 bg-gradient-to-r from-gray-600/20 to-gray-500/20 rounded-lg flex items-center justify-center">
+                  <Target size={14} className="text-gray-600" />
+                </div>
+                <span className="hidden lg:inline font-bold tracking-wide whitespace-nowrap text-xs">F&O</span>
               </button>
 
               {/* Enhanced User Info Card */}
-              <div className="flex items-center space-x-2 bg-gray-800 px-3 py-2 rounded-lg border border-gray-600">
-                <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-xs">
+              <div className="flex items-center justify-center space-x-2 bg-gradient-to-r from-black/80 via-gray-900/80 to-black/80 px-4 py-2 min-w-[100px] h-14 rounded-2xl border border-gray-400/30 backdrop-blur-sm shadow-xl shadow-white/10">
+                <div className="w-6 h-6 bg-gradient-to-br from-gray-300 via-white to-gray-200 rounded-lg flex items-center justify-center shadow-lg">
+                  <span className="text-black font-bold text-xs">
                     {userData.name?.charAt(0)?.toUpperCase() || "U"}
                   </span>
                 </div>
-                <span className="text-gray-100 font-medium text-sm hidden sm:inline">{userData.name}</span>
+                <span className="text-gray-200 font-bold text-xs hidden lg:inline whitespace-nowrap">{userData.name || 'User'}</span>
               </div>
               
-              {/* Enhanced Logout Button */}
+              {/* Logout Button */}
               <button
                 onClick={() => {
                   // Handle logout for both Firebase and admin-created users
+                  localStorage.clear();
                   if (user?.isAdminCreated) {
                     localStorage.removeItem('adminCreatedUser');
-                    window.location.href = "/";
                   } else {
                     signOut(auth);
                   }
+                  window.location.href = '/';
                 }}
-                className="flex items-center space-x-2 px-3 py-2 text-sm text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-600 hover:border-gray-500 transition-colors"
+                className="group flex items-center justify-center space-x-2 px-4 py-2 min-w-[100px] h-14 text-sm font-semibold text-gray-300 hover:text-white bg-gradient-to-r from-black/80 via-gray-900/80 to-black/80 hover:from-gray-700 hover:via-gray-600 hover:to-gray-500 rounded-2xl border border-gray-400/30 hover:border-white/60 backdrop-blur-sm transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-white/25 hover:scale-105 transform hover:-translate-y-1"
               >
-                <LogOut size={14} />
-                <span className="hidden sm:inline">Logout</span>
+                <div className="w-6 h-6 bg-gradient-to-r from-gray-400/30 to-white/30 rounded-lg flex items-center justify-center group-hover:from-gray-300 group-hover:to-white transition-all duration-300">
+                  <LogOut size={14} className="group-hover:rotate-12 transition-transform duration-300 text-gray-400 group-hover:text-black" />
+                </div>
+                <span className="hidden lg:inline font-bold tracking-wide whitespace-nowrap text-xs">Logout</span>
               </button>
             </div>
           </div>
@@ -459,80 +631,106 @@ export default function Dashboard() {
       
       <main className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-10 py-8 space-y-8">
 
-        {/* Modern Portfolio Summary */}
+        {/* Premium Portfolio Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-[#1a1d23] rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                  <Wallet size={20} className="text-white" />
+          <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-2xl p-8 border border-gray-400/30 hover:border-white/60 transition-all duration-300 shadow-2xl hover:shadow-white/20 group">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-gray-300 to-white rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-white/30 group-hover:scale-110 transition-all duration-300">
+                  <Wallet size={24} className="text-black drop-shadow-lg" />
                 </div>
-                <span className="text-gray-100 font-medium">Portfolio Value</span>
+                <div>
+                  <span className="text-gray-100 font-semibold text-lg bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">Portfolio Value</span>
+                  <div className="text-xs text-gray-400 mt-1">Total Investment</div>
+                </div>
               </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-2xl font-bold text-white">₹{portfolioValue.toLocaleString("en-IN")}</p>
-              <p className="text-sm text-gray-400">Available: ₹{userData.cash?.toLocaleString("en-IN") || '0'}</p>
+            <div className="space-y-3">
+              <p className="text-3xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">₹{portfolioValue.toLocaleString("en-IN")}</p>
+              <div className="bg-gray-900/30 rounded-lg p-3 border border-gray-400/30">
+                <p className="text-sm text-gray-300 font-medium">Available Cash: ₹{userData.cash?.toLocaleString("en-IN") || '0'}</p>
+              </div>
             </div>
           </div>
           
-          <div className="bg-[#1a1d23] rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+          <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-2xl p-8 border border-gray-400/30 hover:border-white/60 transition-all duration-300 shadow-2xl hover:shadow-white/20 group">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-all duration-300 ${
                   timerData?.isRunning && !timerData?.isPaused 
-                    ? "bg-blue-600" 
-                    : "bg-red-600"
+                    ? "bg-gradient-to-br from-gray-300 to-white group-hover:shadow-white/30" 
+                    : "bg-gradient-to-br from-gray-600 to-gray-800 group-hover:shadow-gray-500/30"
                 }`}>
-                  <Timer size={20} className="text-white" />
+                  <Timer size={24} className={timerData?.isRunning && !timerData?.isPaused ? "text-black drop-shadow-lg" : "text-white drop-shadow-lg"} />
                 </div>
-                <span className="text-gray-100 font-medium">Round {round}</span>
+                <div>
+                  <span className="text-gray-100 font-semibold text-lg">Round {round}</span>
+                  <div className="text-xs text-gray-400 mt-1">Trading Session</div>
+                </div>
               </div>
-              <div className={`w-3 h-3 rounded-full ${
-                isFrozen || timerData?.isPaused ? "bg-red-500" : "bg-green-500"
+              <div className={`w-4 h-4 rounded-full shadow-lg ${
+                isFrozen || timerData?.isPaused ? "bg-red-400 animate-pulse" : "bg-white animate-pulse shadow-white/50"
               }`}></div>
             </div>
-            <div className="space-y-1">
-              <p className="text-2xl font-bold font-mono text-white">{displayTime}</p>
-              <p className={`text-sm ${
-                isFrozen || timerData?.isPaused ? "text-red-400" : "text-green-400"
+            <div className="space-y-3">
+              <p className="text-3xl font-bold font-mono bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">{displayTime}</p>
+              <div className={`rounded-lg p-3 border ${
+                isFrozen || timerData?.isPaused 
+                  ? "bg-red-900/30 border-red-600/30" 
+                  : "bg-green-900/30 border-green-600/30"
               }`}>
-                {isFrozen ? "Market Frozen" : timerData?.isPaused ? "Market Paused" : "Live Trading"}
-              </p>
+                <p className={`text-sm font-medium ${
+                  isFrozen || timerData?.isPaused ? "text-red-300" : "text-green-300"
+                }`}>
+                  {isFrozen ? "Market Frozen" : timerData?.isPaused ? "Market Paused" : "Live Trading"}
+                </p>
+              </div>
             </div>
           </div>
           
-          <div className="bg-[#1a1d23] rounded-xl p-6 border border-gray-700 hover:border-gray-600 transition-colors">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <BarChart3 size={20} className="text-white" />
+          <div className="bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 backdrop-blur-xl rounded-2xl p-8 border border-gray-400/30 hover:border-white/60 transition-all duration-300 shadow-2xl hover:shadow-white/20 group">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 bg-gradient-to-br from-gray-300 to-white rounded-2xl flex items-center justify-center shadow-xl group-hover:shadow-white/30 group-hover:scale-110 transition-all duration-300">
+                  <PieChart size={24} className="text-black drop-shadow-lg" />
                 </div>
-                <span className="text-gray-100 font-medium">Holdings</span>
+                <div>
+                  <span className="text-gray-100 font-semibold text-lg">Holdings</span>
+                  <div className="text-xs text-gray-400 mt-1">Stock Portfolio</div>
+                </div>
               </div>
-              <span className="text-sm text-gray-400 bg-gray-800 px-2 py-1 rounded">{Object.keys(userData.holdings || {}).length} stocks</span>
+              <div className="bg-gradient-to-r from-gray-600/20 to-gray-500/20 backdrop-blur-sm px-4 py-2 rounded-xl border border-gray-400/30">
+                <span className="text-sm text-gray-300 font-semibold">{Object.keys(userData.holdings || {}).length} stocks</span>
+              </div>
             </div>
-            <div className="space-y-1">
-              <p className="text-2xl font-bold text-white">{Object.keys(userData.holdings || {}).length}</p>
-              <p className="text-sm text-gray-400">Active positions</p>
+            <div className="space-y-3">
+              <p className="text-3xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">{Object.keys(userData.holdings || {}).length}</p>
+              <div className="bg-gray-900/30 rounded-lg p-3 border border-gray-400/30">
+                <p className="text-sm text-gray-300 font-medium">Active Positions</p>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Modern Market News */}
+        {/* Premium Market News */}
         {liveNews.length > 0 && (
-          <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
-            <div className="p-4 border-b border-gray-700">
+          <div className="bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 backdrop-blur-xl rounded-2xl border border-gray-600/30 shadow-2xl">
+            <div className="p-6 border-b border-gray-600/30">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
-                    <AlertCircle size={16} className="text-white" />
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg">
+                    <AlertCircle size={20} className="text-white drop-shadow-sm" />
                   </div>
-                  <span className="text-lg font-semibold text-gray-100">Market Updates</span>
+                  <div>
+                    <h2 className="text-xl font-bold bg-gradient-to-r from-white to-orange-200 bg-clip-text text-transparent">Market Updates</h2>
+                    <p className="text-sm text-gray-400">Live market news feed</p>
+                  </div>
                 </div>
-                <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded border border-gray-600">
-                  {liveNews.length} {liveNews.length === 1 ? 'Update' : 'Updates'}
-                </span>
+                <div className="bg-gradient-to-r from-orange-600/20 to-red-600/20 backdrop-blur-sm px-4 py-2 rounded-xl border border-orange-500/30">
+                  <span className="text-sm text-orange-300 font-semibold">
+                    {liveNews.length} {liveNews.length === 1 ? 'Update' : 'Updates'}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="p-4 space-y-3 max-h-64 overflow-y-auto custom-scrollbar">
@@ -544,9 +742,9 @@ export default function Dashboard() {
                 }`}>
                   <div className="flex items-center justify-between mb-2">
                     <span className={`text-xs font-semibold uppercase px-2 py-1 rounded ${
-                      news.severity === 'severe' ? 'text-red-300 bg-red-900/50' :
-                      news.severity === 'moderate' ? 'text-yellow-300 bg-yellow-900/50' :
-                      'text-blue-300 bg-blue-900/50'
+                      news.severity === 'severe' ? 'text-red-300 bg-gray-900/50' :
+                      news.severity === 'moderate' ? 'text-yellow-300 bg-gray-900/50' :
+                      'text-gray-300 bg-gray-900/50'
                     }`}>
                       {news.severity || 'Breaking'}
                     </span>
@@ -562,7 +760,7 @@ export default function Dashboard() {
                       <span className="text-xs text-gray-400 font-medium">Affected stocks: </span>
                       <div className="flex flex-wrap gap-1 mt-1">
                         {Object.keys(news.stocks).filter(s => news.stocks[s]).map(stock => (
-                          <span key={stock} className="text-xs font-medium text-white bg-blue-600 px-2 py-1 rounded">
+                          <span key={stock} className="text-xs font-medium text-black bg-gray-300 px-2 py-1 rounded">
                             {stock}
                           </span>
                         ))}
@@ -586,61 +784,80 @@ export default function Dashboard() {
         {selectedStock && (
           <div 
             id="market-dynamics"
-            className={`bg-[#1a1d23] rounded-xl border border-gray-700 transition-all duration-700 ease-out transform ${
+            className={`bg-gradient-to-br from-black/90 via-gray-900/90 to-black/90 rounded-xl border border-gray-400/50 backdrop-blur-xl shadow-2xl shadow-white/10 transition-all duration-700 ease-out transform ${
               showMarketDynamics 
                 ? 'opacity-100 translate-y-0 scale-100' 
                 : 'opacity-0 translate-y-4 scale-95'
             }`}
           >
-            <div className="p-4 border-b border-gray-700">
+            <div className="p-6 border-b border-gray-400/40 bg-gradient-to-r from-gray-600/20 via-gray-500/15 to-gray-600/20 rounded-t-xl">
               <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-cyan-600 rounded-lg flex items-center justify-center">
-                    <BarChart3 size={16} className="text-white" />
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-300 to-white rounded-lg blur-sm opacity-50"></div>
+                    <div className="relative w-10 h-10 bg-gradient-to-br from-gray-300 via-white to-gray-200 rounded-lg flex items-center justify-center shadow-lg">
+                      <BarChart3 size={18} className="text-black" />
+                    </div>
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-100">Market Dynamics - {selectedStock}</h2>
+                  <div>
+                    <h2 className="text-lg font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">Market Dynamics - {selectedStock}</h2>
+                    <p className="text-sm text-gray-400 font-medium">Real-time market analysis</p>
+                  </div>
                 </div>
                 <button 
                   onClick={() => {
                     setShowMarketDynamics(false);
                     setTimeout(() => setSelectedStock(null), 300);
                   }}
-                  className="w-8 h-8 bg-gray-800 hover:bg-red-600 rounded-lg flex items-center justify-center border border-gray-600 hover:border-red-500 transition-colors"
+                  className="w-10 h-10 bg-gradient-to-r from-black/80 to-gray-900/80 hover:from-gray-700 hover:to-gray-600 rounded-lg flex items-center justify-center border border-gray-400/50 hover:border-white/60 transition-all duration-300 shadow-lg hover:shadow-white/20"
                 >
-                  <X size={16} className="text-gray-400 hover:text-white" />
+                  <X size={18} className="text-gray-400 hover:text-white" />
                 </button>
               </div>
             </div>
             <div className="p-6">
               {(() => {
                 const stockData = stocks[selectedStock];
-                const symbolOrderBook = orderBook[selectedStock] || { buyers: 0, sellers: 0, volume: 0 };
-                const buyPressure = symbolOrderBook.buyers || 0;
-                const sellPressure = symbolOrderBook.sellers || 0;
-                const totalPressure = buyPressure + sellPressure;
+                const symbolOrderBook = orderBook[selectedStock] || { 
+                  buyers: 0, sellers: 0, volume: 0, totalValue: 0, trades: 0, vwap: 0, buyPressure: 0.5 
+                };
+                const symbolMarketData = marketData[selectedStock] || {
+                  volatility: 0.02, momentum: 0, avgPrice: stockData?.price || 0, liquidityFactor: 1
+                };
+                const buyPressure = symbolOrderBook.buyPressure || 0.5;
+                const sellPressure = 1 - buyPressure;
+                const totalPressure = (symbolOrderBook.buyers || 0) + (symbolOrderBook.sellers || 0);
                 const buyPercentage = totalPressure > 0 ? (buyPressure / totalPressure) * 100 : 50;
                 const trend = buyPercentage > 60 ? "up" : buyPercentage < 40 ? "down" : "neutral";
                 
                 return (
                   <div className="max-w-2xl mx-auto">
-                    {/* Stock Header */}
+                    {/* Stock Header with Logo */}
                     <div className="flex justify-between items-center mb-6">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                          trend === "up" ? "bg-green-600" :
-                          trend === "down" ? "bg-red-600" :
-                          "bg-gray-600"
-                        }`}>
-                          {trend === "up" ? (
-                            <TrendingUp size={24} className="text-white" />
-                          ) : trend === "down" ? (
-                            <TrendingDown size={24} className="text-white" />
-                          ) : (
-                            <Activity size={24} className="text-white" />
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="text-2xl font-bold text-gray-100">{selectedStock}</h3>
+                      <div className="flex items-center space-x-4">
+                        <CompanyLogo 
+                          symbol={selectedStock} 
+                          size={56} 
+                          className="flex-shrink-0"
+                          fallbackStyle="gradient"
+                        />
+                        <div className="flex flex-col space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="text-2xl font-bold text-gray-100">{selectedStock}</h3>
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                              trend === "up" ? "bg-white" :
+                              trend === "down" ? "bg-gray-600" :
+                              "bg-gray-400"
+                            }`}>
+                              {trend === "up" ? (
+                                <TrendingUp size={16} className="text-black" />
+                              ) : trend === "down" ? (
+                                <TrendingDown size={16} className="text-white" />
+                              ) : (
+                                <Activity size={16} className="text-white" />
+                              )}
+                            </div>
+                          </div>
                           <p className="text-lg font-semibold text-gray-300">₹{Number(stockData?.price || 0).toFixed(2)}</p>
                         </div>
                       </div>
@@ -659,7 +876,7 @@ export default function Dashboard() {
                       
                       {/* Large Pressure Bar */}
                       <div className="relative mb-4">
-                        <div className="w-full h-6 bg-red-900 rounded-full overflow-hidden">
+                        <div className="w-full h-6 bg-gray-800 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gradient-to-r from-green-500 to-green-600 transition-all duration-1000 ease-out"
                             style={{ width: `${buyPercentage}%` }}
@@ -678,22 +895,57 @@ export default function Dashboard() {
                           <div className="w-16 h-16 bg-green-600 rounded-lg flex items-center justify-center mx-auto mb-2">
                             <ArrowUp size={24} className="text-white" />
                           </div>
-                          <div className="text-2xl font-bold text-green-400">{buyPressure}</div>
-                          <div className="text-sm text-gray-300">Active Buyers</div>
+                          <div className="text-2xl font-bold text-green-400">{(symbolOrderBook.buyers || 0).toLocaleString()}</div>
+                          <div className="text-sm text-gray-300">Buy Orders</div>
                         </div>
                         <div className="text-center">
                           <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-2">
                             <BarChart3 size={24} className="text-white" />
                           </div>
-                          <div className="text-2xl font-bold text-blue-400">{symbolOrderBook.volume || 0}</div>
+                          <div className="text-2xl font-bold text-blue-400">{(symbolOrderBook.volume || 0).toLocaleString()}</div>
                           <div className="text-sm text-gray-300">Total Volume</div>
                         </div>
                         <div className="text-center">
                           <div className="w-16 h-16 bg-red-600 rounded-lg flex items-center justify-center mx-auto mb-2">
                             <ArrowDown size={24} className="text-white" />
                           </div>
-                          <div className="text-2xl font-bold text-red-400">{sellPressure}</div>
-                          <div className="text-sm text-gray-300">Active Sellers</div>
+                          <div className="text-2xl font-bold text-red-400">{(symbolOrderBook.sellers || 0).toLocaleString()}</div>
+                          <div className="text-sm text-gray-300">Sell Orders</div>
+                        </div>
+                      </div>
+                      
+                      {/* Enhanced Market Metrics Row */}
+                      <div className="grid grid-cols-4 gap-4 mt-6 pt-4 border-t border-gray-600/30">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-blue-400">₹{symbolOrderBook.vwap || stockData?.price || 0}</div>
+                          <div className="text-xs text-gray-400">VWAP</div>
+                        </div>
+                        <div className="text-center">
+                          <div className={`text-lg font-bold ${
+                            symbolMarketData.volatility > 0.05 ? 'text-red-400' : 
+                            symbolMarketData.volatility > 0.03 ? 'text-yellow-400' : 'text-green-400'
+                          }`}>
+                            {(symbolMarketData.volatility * 100).toFixed(1)}%
+                          </div>
+                          <div className="text-xs text-gray-400">Volatility</div>
+                        </div>
+                        <div className="text-center">
+                          <div className={`text-lg font-bold ${
+                            symbolMarketData.momentum > 0 ? 'text-green-400' : 
+                            symbolMarketData.momentum < 0 ? 'text-red-400' : 'text-gray-400'
+                          }`}>
+                            {symbolMarketData.momentum > 0 ? '+' : ''}{symbolMarketData.momentum.toFixed(1)}
+                          </div>
+                          <div className="text-xs text-gray-400">Momentum</div>
+                        </div>
+                        <div className="text-center">
+                          <div className={`text-lg font-bold ${
+                            (symbolMarketData.liquidityFactor || 1) > 0.8 ? 'text-green-400' :
+                            (symbolMarketData.liquidityFactor || 1) > 0.5 ? 'text-yellow-400' : 'text-red-400'
+                          }`}>
+                            {((symbolMarketData.liquidityFactor || 1) * 100).toFixed(0)}%
+                          </div>
+                          <div className="text-xs text-gray-400">Liquidity</div>
                         </div>
                       </div>
                     </div>
@@ -737,13 +989,21 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Modern Stock List */}
           <div className="lg:col-span-4">
-            <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
-              <div className="p-4 border-b border-gray-700">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                    <BarChart3 size={16} className="text-white" />
+            <div className="bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 rounded-2xl border border-gray-600/50 shadow-2xl backdrop-blur-xl">
+              <div className="p-6 border-b border-gray-400/40 bg-gradient-to-r from-gray-600/20 via-gray-500/15 to-gray-600/20 rounded-t-2xl">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-300 to-white rounded-xl blur-sm opacity-50"></div>
+                    <div className="relative w-10 h-10 bg-gradient-to-br from-gray-300 via-white to-gray-200 rounded-xl flex items-center justify-center shadow-lg">
+                      <BarChart3 size={18} className="text-black" />
+                    </div>
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-100">Live Market</h2>
+                  <div>
+                    <h2 className="text-xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                      Live Market
+                    </h2>
+                    <p className="text-sm text-gray-300 font-medium">Real-time stock prices</p>
+                  </div>
                 </div>
               </div>
               <div className="p-3 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
@@ -764,40 +1024,45 @@ export default function Dashboard() {
                         setShowMarketDynamics(false);
                         setTimeout(() => {
                           setShowMarketDynamics(true);
-                          // Smooth scroll to market dynamics section after opening
+                          // Smooth scroll to trading interface section after opening
                           setTimeout(() => {
-                            const marketDynamicsElement = document.querySelector('#market-dynamics');
-                            if (marketDynamicsElement) {
-                              marketDynamicsElement.scrollIntoView({ 
+                            const tradingElement = document.querySelector('#trading-interface');
+                            if (tradingElement) {
+                              tradingElement.scrollIntoView({ 
                                 behavior: 'smooth',
-                                block: 'center'
+                                block: 'start'
                               });
                             }
                           }, 400);
                         }, 100);
                       }}
-                      className={`p-3 rounded-lg cursor-pointer transition-all duration-300 border hover:scale-[1.01] ${
+                      className={`group p-4 rounded-2xl cursor-pointer transition-all duration-500 border backdrop-blur-sm hover:scale-[1.02] ${
                         isSelected
-                          ? "bg-blue-600/20 border-blue-500/50 shadow-lg"
-                          : "bg-gray-800/80 border-gray-600/50 hover:bg-gray-700/80 hover:border-gray-500/60"
+                          ? "bg-gradient-to-br from-blue-600/20 via-blue-500/15 to-blue-600/20 border-blue-400/60 shadow-2xl shadow-blue-500/20"
+                          : "bg-gradient-to-br from-gray-800/60 via-gray-750/50 to-gray-800/60 border-gray-600/40 hover:bg-gradient-to-br hover:from-gray-700/70 hover:via-gray-650/60 hover:to-gray-700/70 hover:border-gray-500/50 hover:shadow-xl hover:shadow-gray-900/50"
                       }`}
                     >
-                      {/* Stock Header */}
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            isSelected ? 'bg-blue-400' : isPositive ? 'bg-green-500' : 'bg-red-500'
-                          }`}></div>
-                          <h3 className={`font-bold text-sm ${
-                            isSelected ? 'text-blue-200' : 'text-gray-100'
-                          }`}>
-                            {sym}
-                          </h3>
-                          {owned > 0 && (
-                            <span className="bg-green-600 text-white text-xs font-semibold px-1.5 py-0.5 rounded">
-                              {owned}
-                            </span>
-                          )}
+                      {/* Stock Header with Logo */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                          <CompanyLogo 
+                            symbol={sym} 
+                            size={36} 
+                            className="flex-shrink-0"
+                            fallbackStyle="gradient"
+                          />
+                          <div className="flex flex-col">
+                            <h3 className={`font-bold text-sm ${
+                              isSelected ? 'text-blue-200' : 'text-gray-100'
+                            }`}>
+                              {sym}
+                            </h3>
+                            {owned > 0 && (
+                              <span className="bg-gray-300 text-black text-xs font-semibold px-1.5 py-0.5 rounded mt-1 w-fit">
+                                {owned} shares
+                              </span>
+                            )}
+                          </div>
                         </div>
                         
                         {/* Change Amount */}
@@ -845,45 +1110,62 @@ export default function Dashboard() {
 
           {/* Modern Trading Panel */}
           <div className="lg:col-span-5">
-            <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
-              <div className="p-4 border-b border-gray-700">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                    <Activity size={16} className="text-white" />
+            <div id="trading-interface" className="bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 rounded-2xl border border-gray-600/50 shadow-2xl backdrop-blur-xl">
+              <div className="p-6 border-b border-gray-400/40 bg-gradient-to-r from-gray-600/20 via-gray-500/15 to-gray-600/20 rounded-t-2xl">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-300 to-white rounded-xl blur-sm opacity-50"></div>
+                    <div className="relative w-10 h-10 bg-gradient-to-br from-gray-300 via-white to-gray-200 rounded-xl flex items-center justify-center shadow-lg">
+                      <Activity size={18} className="text-black" />
+                    </div>
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-100">
-                    {selectedStock ? `Trade ${selectedStock}` : "Trading Interface"}
-                  </h2>
+                  <div>
+                    <h2 className="text-xl font-bold bg-gradient-to-r from-white via-gray-100 to-gray-200 bg-clip-text text-transparent">
+                      {selectedStock ? `Trade ${selectedStock}` : "Trading Interface"}
+                    </h2>
+                    <p className="text-sm text-gray-400">Execute your trades with precision</p>
+                  </div>
                 </div>
               </div>
               <div className="p-6">
                 {selectedStock && stocks[selectedStock] ? (
                   <div className="space-y-8">
-                    {/* Enhanced Stock Info */}
-                    <div className="text-center py-4 bg-gray-800 rounded-lg border border-gray-700">
-                      <h3 className="text-2xl font-bold text-gray-100 mb-3">{selectedStock}</h3>
-                      <p className="text-4xl font-bold text-white">₹{Number(stocks[selectedStock].price).toFixed(2)}</p>
-                      <div className="mt-2 flex items-center justify-center space-x-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-green-400 text-sm font-medium">Live Price</span>
+                    {/* Enhanced Stock Info with Logo */}
+                    <div className="text-center py-8 bg-gradient-to-br from-gray-800/80 via-gray-700/70 to-gray-800/80 rounded-xl border border-gray-600/50 shadow-xl backdrop-blur-sm">
+                      <div className="flex flex-col items-center space-y-4">
+                        <CompanyLogo 
+                          symbol={selectedStock} 
+                          size={64} 
+                          showName={true}
+                          className="flex flex-col items-center space-y-2"
+                          fallbackStyle="gradient"
+                        />
+                        <div className="space-y-2">
+                          <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">{selectedStock}</h3>
+                          <p className="text-4xl font-bold bg-gradient-to-r from-white via-gray-100 to-gray-200 bg-clip-text text-transparent">₹{Number(stocks[selectedStock].price).toFixed(2)}</p>
+                        </div>
+                        <div className="flex items-center justify-center space-x-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="text-green-400 text-sm font-medium">Live Price</span>
+                        </div>
                       </div>
                     </div>
 
                     {/* Enhanced Quantity Input */}
                     <div className="space-y-3">
-                      <label className="text-sm font-medium text-gray-300">Quantity</label>
+                      <label className="text-sm font-medium bg-gradient-to-r from-gray-200 to-gray-300 bg-clip-text text-transparent">Quantity</label>
                       <input
                         type="number"
                         placeholder="Enter quantity"
                         value={quantity}
                         onChange={(e) => setQuantity(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-800 border border-gray-600 focus:border-blue-500 rounded-lg text-white placeholder-gray-400 focus:outline-none text-center font-medium transition-colors"
+                        className="w-full px-4 py-3 bg-gradient-to-r from-gray-800/80 to-gray-700/80 border border-gray-600/60 focus:border-blue-500/80 focus:shadow-lg focus:shadow-blue-500/20 rounded-xl text-white placeholder-gray-400 focus:outline-none text-center font-medium transition-all duration-300 backdrop-blur-sm"
                       />
                     </div>
 
                     {/* Enhanced Cash & Order Value */}
                     <div className="space-y-4">
-                      <div className="bg-gray-800 border border-gray-600 rounded-lg p-4">
+                      <div className="bg-gradient-to-r from-gray-800/80 via-gray-700/70 to-gray-800/80 border border-gray-600/60 rounded-xl p-4 shadow-lg backdrop-blur-sm">
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-medium text-gray-300">Available Cash</span>
                           <span className="font-bold text-lg text-white">
@@ -893,16 +1175,16 @@ export default function Dashboard() {
                       </div>
                       
                       {quantity && (
-                        <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm text-gray-300">Order Value</span>
-                            <span className="font-semibold text-gray-100">
+                        <div className="bg-gradient-to-br from-gray-800/90 via-gray-700/80 to-gray-800/90 border border-gray-600/60 rounded-xl p-5 shadow-xl backdrop-blur-sm">
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="text-sm font-medium bg-gradient-to-r from-gray-200 to-gray-300 bg-clip-text text-transparent">Order Value</span>
+                            <span className="font-bold text-lg bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
                               ₹{(Number(quantity) * Number(stocks[selectedStock].price)).toLocaleString("en-IN")}
                             </span>
                           </div>
                           <div className="flex justify-between items-center">
-                            <span className="text-xs text-gray-400">Remaining Cash</span>
-                            <span className={`text-xs font-medium ${
+                            <span className="text-xs text-gray-400 font-medium">Remaining Cash</span>
+                            <span className={`text-sm font-bold ${
                               (userData.cash || 0) - (Number(quantity) * Number(stocks[selectedStock].price)) >= 0 
                                 ? "text-green-400" : "text-red-400"
                             }`}>
@@ -913,18 +1195,18 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    {/* Enhanced Trade Buttons */}
+                    {/* Premium Trade Buttons */}
                     <div className="grid grid-cols-2 gap-4">
                       <button
                         onClick={() => handleTrade("BUY")}
-                        className="bg-green-600 hover:bg-green-500 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                        className="bg-gradient-to-r from-gray-300 to-white hover:from-white hover:to-gray-200 text-black font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-white/30 transform hover:scale-105"
                       >
                         <Plus size={18} />
                         <span>BUY</span>
                       </button>
                       <button
                         onClick={() => handleTrade("SELL")}
-                        className="bg-red-600 hover:bg-red-500 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                        className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-gray-500/30 transform hover:scale-105"
                       >
                         <Minus size={18} />
                         <span>SELL</span>
@@ -956,13 +1238,21 @@ export default function Dashboard() {
 
           {/* Modern Trade History */}
           <div className="lg:col-span-3">
-            <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
-              <div className="p-4 border-b border-gray-700">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                    <Activity size={16} className="text-white" />
+            <div className="bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 rounded-2xl border border-gray-600/50 shadow-2xl backdrop-blur-xl">
+              <div className="p-6 border-b border-gray-400/40 bg-gradient-to-r from-gray-600/20 via-gray-500/15 to-gray-600/20 rounded-t-2xl">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-300 to-white rounded-xl blur-sm opacity-50"></div>
+                    <div className="relative w-10 h-10 bg-gradient-to-br from-gray-300 via-white to-gray-200 rounded-xl flex items-center justify-center shadow-lg">
+                      <Activity size={18} className="text-black" />
+                    </div>
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-100">Recent Trades</h2>
+                  <div>
+                    <h2 className="text-xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                      Recent Trades
+                    </h2>
+                    <p className="text-sm text-gray-300 font-medium">Your trading activity</p>
+                  </div>
                 </div>
               </div>
               <div className="p-3 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
@@ -1024,33 +1314,44 @@ export default function Dashboard() {
         {/* Modern Holdings Section */}
         {Object.keys(userData.holdings || {}).length > 0 && (
           <div className="mt-8">
-            <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
-              <div className="p-4 border-b border-gray-700">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                    <PieChart size={16} className="text-white" />
+            <div className="bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 rounded-2xl border border-gray-600/50 shadow-2xl backdrop-blur-xl">
+              <div className="p-6 border-b border-gray-400/40 bg-gradient-to-r from-gray-600/20 via-gray-500/15 to-gray-600/20 rounded-t-2xl">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-300 to-white rounded-xl blur-sm opacity-50"></div>
+                    <div className="relative w-10 h-10 bg-gradient-to-br from-gray-300 via-white to-gray-200 rounded-xl flex items-center justify-center shadow-lg">
+                      <PieChart size={18} className="text-black" />
+                    </div>
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-100">Your Holdings</h2>
-                  <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded border border-gray-600">
+                  <div>
+                    <h2 className="text-xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                      Your Holdings
+                    </h2>
+                    <p className="text-sm text-gray-300 font-medium">Portfolio positions</p>
+                  </div>
+                  <span className="bg-gradient-to-r from-black/80 to-gray-900/80 text-gray-200 text-sm px-4 py-2 rounded-xl border border-gray-400/50 backdrop-blur-sm shadow-lg">
                     {Object.keys(userData.holdings || {}).length} {Object.keys(userData.holdings || {}).length === 1 ? 'Position' : 'Positions'}
                   </span>
                 </div>
               </div>
-              <div className="p-4 space-y-3">
+              <div className="p-6 space-y-4">
                 {Object.entries(userData.holdings || {}).map(([sym, qty]) => {
                   const currentPrice = Number(stocks[sym]?.price || 0);
                   const holdingValue = currentPrice * qty;
                   
                   return (
-                    <div key={sym} className="p-4 bg-gray-800/80 border border-gray-600/50 rounded-lg hover:bg-gray-700/80 hover:border-gray-500/60 transition-all duration-300">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                            {sym.charAt(0)}
-                          </div>
+                    <div key={sym} className="p-5 bg-gradient-to-br from-black/80 via-gray-900/70 to-black/80 border border-gray-400/50 rounded-xl hover:from-gray-900/90 hover:via-gray-800/80 hover:to-gray-900/90 hover:border-white/60 hover:shadow-xl hover:shadow-white/10 transition-all duration-300 backdrop-blur-sm">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-4">
+                          <CompanyLogo 
+                            symbol={sym} 
+                            size={48} 
+                            className="flex-shrink-0"
+                            fallbackStyle="gradient"
+                          />
                           <div>
-                            <h3 className="font-bold text-gray-100 text-lg">{sym}</h3>
-                            <p className="text-sm text-gray-400">{qty} shares</p>
+                            <h3 className="font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent text-lg">{sym}</h3>
+                            <p className="text-sm text-gray-300 font-medium">{qty} shares</p>
                           </div>
                         </div>
                         <div className="text-right">
@@ -1077,40 +1378,48 @@ export default function Dashboard() {
         {/* Modern Round History Section */}
         {Object.keys(roundHistory).length > 0 && (
           <div className="mt-8">
-            <div className="bg-[#1a1d23] rounded-xl border border-gray-700">
-              <div className="p-4 border-b border-gray-700">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                    <BarChart3 size={16} className="text-white" />
+            <div className="bg-gradient-to-br from-gray-800/60 via-gray-700/60 to-gray-800/60 rounded-2xl border border-gray-600/50 shadow-2xl backdrop-blur-xl">
+              <div className="p-6 border-b border-gray-400/40 bg-gradient-to-r from-gray-600/20 via-gray-500/15 to-gray-600/20 rounded-t-2xl">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-300 to-white rounded-xl blur-sm opacity-50"></div>
+                    <div className="relative w-10 h-10 bg-gradient-to-br from-gray-300 via-white to-gray-200 rounded-xl flex items-center justify-center shadow-lg">
+                      <BarChart3 size={18} className="text-black" />
+                    </div>
                   </div>
-                  <h2 className="text-lg font-semibold text-gray-100">Round History</h2>
-                  <span className="bg-gray-800 text-gray-300 text-sm px-3 py-1 rounded border border-gray-600">
+                  <div>
+                    <h2 className="text-xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
+                      Round History
+                    </h2>
+                    <p className="text-sm text-gray-300 font-medium">Historical price data</p>
+                  </div>
+                  <span className="bg-gradient-to-r from-black/80 to-gray-900/80 text-gray-200 text-sm px-4 py-2 rounded-xl border border-gray-400/50 backdrop-blur-sm shadow-lg">
                     {Object.keys(roundHistory).length} {Object.keys(roundHistory).length === 1 ? 'Round' : 'Rounds'}
                   </span>
                 </div>
               </div>
-              <div className="overflow-x-auto custom-scrollbar">
+              <div className="overflow-x-auto custom-scrollbar rounded-xl">
                 <table className="w-full">
-                  <thead className="bg-gray-800 border-b border-gray-700">
+                  <thead className="bg-gradient-to-r from-gray-800/90 via-gray-700/80 to-gray-800/90 border-b border-gray-600/50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-100">Round</th>
+                      <th className="px-6 py-4 text-left text-sm font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">Round</th>
                       {stockList.map((s) => (
-                        <th key={s} className="px-4 py-3 text-right text-sm font-semibold text-gray-100">
+                        <th key={s} className="px-6 py-4 text-right text-sm font-bold bg-gradient-to-r from-white to-indigo-200 bg-clip-text text-transparent">
                           {s}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-700">
+                  <tbody className="divide-y divide-gray-600/30">
                     {Object.entries(roundHistory)
                       .sort()
                       .map(([roundKey, data]) => (
-                        <tr key={roundKey} className="hover:bg-gray-800/50 transition-colors">
-                          <td className="px-4 py-3 font-medium text-gray-100">
+                        <tr key={roundKey} className="hover:bg-gradient-to-r hover:from-gray-700/50 hover:via-gray-600/40 hover:to-gray-700/50 transition-all duration-300">
+                          <td className="px-6 py-4 font-bold text-gray-100 text-base">
                             {roundKey.replace("round", "Round ")}
                           </td>
                           {stockList.map((stock) => (
-                            <td key={stock} className="px-4 py-3 text-right font-mono text-gray-300 text-sm">
+                            <td key={stock} className="px-6 py-4 text-right font-mono text-gray-200 text-sm font-medium">
                               {data.prices?.[stock] ? `₹${data.prices[stock].toFixed(2)}` : "-"}
                             </td>
                           ))}
