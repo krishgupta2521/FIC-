@@ -7,6 +7,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'JetBrains Mono', 'Consolas', 'monospace'],
+      },
       colors: {
         primary: {
           50: '#f0f9ff',

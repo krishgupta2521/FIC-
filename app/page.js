@@ -23,7 +23,9 @@ import {
   Instagram,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  PlayCircle,
+  Rocket
 } from 'lucide-react';
 
 export default function Home() {
@@ -127,57 +129,60 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-emerald-500/20 selection:text-white overflow-x-hidden relative">
-      {/* Modern overlay for depth */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/20 pointer-events-none z-[1]" />
+    <div className="min-h-screen bg-gray-900 text-white font-sans selection:bg-blue-500/20 selection:text-white overflow-x-hidden relative">
+      {/* Dark overlay for depth */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-800/20 to-black/30 pointer-events-none z-[1]" />
       
-      {/* --- PREMIUM AESTHETIC BACKGROUND --- */}
+      {/* --- LIGHT BACKGROUND WITH PULSING DOTS --- */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Enhanced base gradient with depth */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-slate-900 to-black" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-emerald-950/20 via-transparent to-blue-950/20" />
+        {/* Dark gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-black" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-gray-700/30 via-transparent to-gray-600/20" />
         
-        {/* Premium animated gradient orbs */}
-        <div className="absolute top-1/4 left-1/8 w-[800px] h-[800px] bg-gradient-to-r from-emerald-500/12 via-teal-400/8 to-cyan-400/6 rounded-full blur-[150px] animate-pulse-slow" />
-        <div className="absolute bottom-1/4 right-1/8 w-[700px] h-[700px] bg-gradient-to-l from-blue-500/12 via-indigo-400/8 to-violet-400/6 rounded-full blur-[140px] animate-float" style={{animationDelay: '2s'}} />
-        <div className="absolute top-1/2 left-1/2 w-[600px] h-[600px] bg-gradient-to-t from-purple-500/10 via-fuchsia-400/6 to-pink-400/4 rounded-full blur-[130px] animate-float" style={{animationDelay: '4s'}} />
-        <div className="absolute top-3/4 left-1/4 w-[500px] h-[500px] bg-gradient-to-br from-teal-500/8 via-emerald-400/6 to-green-400/4 rounded-full blur-[120px] animate-float" style={{animationDelay: '6s'}} />
+        {/* Pulsing colorful dots */}
+        <div className="absolute inset-0">
+          {/* Professional pulsing dots */}
+          <div className="absolute top-[8%] left-[15%] w-2 h-2 bg-blue-400/30 rounded-full animate-pulse" style={{animationDuration: '2s'}} />
+          <div className="absolute top-[12%] right-[25%] w-1.5 h-1.5 bg-slate-400/25 rounded-full animate-pulse" style={{animationDuration: '2.2s'}} />
+          <div className="absolute top-[20%] left-[75%] w-2 h-2 bg-blue-500/30 rounded-full animate-pulse" style={{animationDuration: '2.1s'}} />
+          <div className="absolute top-[25%] left-[45%] w-1.5 h-1.5 bg-emerald-500/25 rounded-full animate-pulse" style={{animationDuration: '2.3s'}} />
+          <div className="absolute top-[35%] right-[15%] w-1.5 h-1.5 bg-slate-500/25 rounded-full animate-pulse" style={{animationDuration: '2s'}} />
+          <div className="absolute top-[45%] left-[20%] w-1.5 h-1.5 bg-blue-400/25 rounded-full animate-pulse" style={{animationDuration: '2.4s'}} />
+          <div className="absolute top-[55%] right-[35%] w-2 h-2 bg-slate-400/30 rounded-full animate-pulse" style={{animationDuration: '2.1s'}} />
+          <div className="absolute top-[65%] left-[80%] w-1.5 h-1.5 bg-emerald-400/25 rounded-full animate-pulse" style={{animationDuration: '2.2s'}} />
+          <div className="absolute top-[75%] left-[60%] w-1.5 h-1.5 bg-blue-500/25 rounded-full animate-pulse" style={{animationDuration: '2s'}} />
+          <div className="absolute top-[85%] right-[45%] w-1.5 h-1.5 bg-slate-500/25 rounded-full animate-pulse" style={{animationDuration: '2.3s'}} />
+          
+          {/* Additional professional dots */}
+          <div className="absolute top-[18%] left-[35%] w-1 h-1 bg-blue-400/20 rounded-full animate-pulse" style={{animationDuration: '2.4s'}} />
+          <div className="absolute top-[28%] right-[60%] w-1 h-1 bg-slate-400/20 rounded-full animate-pulse" style={{animationDuration: '2.1s'}} />
+          <div className="absolute top-[38%] left-[65%] w-1 h-1 bg-emerald-400/20 rounded-full animate-pulse" style={{animationDuration: '2.2s'}} />
+          <div className="absolute top-[48%] right-[20%] w-1 h-1 bg-blue-500/20 rounded-full animate-pulse" style={{animationDuration: '2.3s'}} />
+          <div className="absolute top-[58%] left-[40%] w-1 h-1 bg-slate-500/20 rounded-full animate-pulse" style={{animationDuration: '2s'}} />
+          <div className="absolute top-[68%] right-[70%] w-1 h-1 bg-blue-400/20 rounded-full animate-pulse" style={{animationDuration: '2.4s'}} />
+          <div className="absolute top-[78%] left-[25%] w-1 h-1 bg-emerald-500/20 rounded-full animate-pulse" style={{animationDuration: '2.1s'}} />
+          <div className="absolute top-[88%] right-[55%] w-1 h-1 bg-slate-400/20 rounded-full animate-pulse" style={{animationDuration: '2.2s'}} />
+          
+          {/* More professional pulsing dots */}
+          <div className="absolute top-[5%] left-[55%] w-1 h-1 bg-blue-300/15 rounded-full animate-pulse" style={{animationDuration: '2.3s'}} />
+          <div className="absolute top-[15%] right-[80%] w-1 h-1 bg-slate-300/15 rounded-full animate-pulse" style={{animationDuration: '2s'}} />
+          <div className="absolute top-[30%] left-[10%] w-1 h-1 bg-emerald-300/15 rounded-full animate-pulse" style={{animationDuration: '2.4s'}} />
+          <div className="absolute top-[40%] right-[90%] w-1 h-1 bg-blue-400/15 rounded-full animate-pulse" style={{animationDuration: '2.1s'}} />
+          <div className="absolute top-[50%] left-[85%] w-1 h-1 bg-slate-400/15 rounded-full animate-pulse" style={{animationDuration: '2.2s'}} />
+          <div className="absolute top-[60%] right-[10%] w-1 h-1 bg-blue-500/15 rounded-full animate-pulse" style={{animationDuration: '2.3s'}} />
+          <div className="absolute top-[70%] left-[5%] w-1 h-1 bg-slate-500/15 rounded-full animate-pulse" style={{animationDuration: '2s'}} />
+          <div className="absolute top-[80%] right-[85%] w-1 h-1 bg-emerald-400/15 rounded-full animate-pulse" style={{animationDuration: '2.4s'}} />
+          <div className="absolute top-[90%] left-[70%] w-1 h-1 bg-blue-400/15 rounded-full animate-pulse" style={{animationDuration: '2.1s'}} />
+          <div className="absolute top-[95%] right-[30%] w-1 h-1 bg-slate-400/15 rounded-full animate-pulse" style={{animationDuration: '2.2s'}} />
+        </div>
         
-        {/* Sophisticated grid systems */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(34,197,94,.04)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,.04)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_100%_70%_at_50%_50%,#000_30%,transparent_90%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(59,130,246,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,.03)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_120%_80%_at_30%_20%,#000_20%,transparent_70%)]" />
-        
-        {/* Dynamic diagonal patterns */}
-        <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(135deg,transparent_48%,rgba(34,197,94,.025)_49%,rgba(34,197,94,.025)_51%,transparent_52%)] bg-[size:80px_80px]" />
-        <div className="absolute top-0 right-0 w-full h-full bg-[linear-gradient(-135deg,transparent_48%,rgba(59,130,246,.02)_49%,rgba(59,130,246,.02)_51%,transparent_52%)] bg-[size:120px_120px]" />
-        
-        {/* Hexagonal pattern overlay */}
-        <div className="absolute inset-0 opacity-[0.02]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L52 15V45L30 60L8 45V15L30 0Z' fill='none' stroke='rgba(34,197,94,1)' stroke-width='1'/%3E%3C/svg%3E")`,
-          backgroundSize: '60px 60px'
-        }} />
-        
-        {/* Enhanced noise and grain */}
-        <div className="absolute inset-0 opacity-[0.025] mix-blend-soft-light" style={{backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E")'}} />
-        
-        {/* Animated floating elements */}
-        <div className="absolute top-1/5 left-1/6 w-2 h-2 bg-emerald-400/40 rounded-full animate-ping" style={{animationDelay: '1s'}} />
-        <div className="absolute top-2/5 right-1/5 w-1.5 h-1.5 bg-blue-400/35 rounded-full animate-ping" style={{animationDelay: '3s'}} />
-        <div className="absolute bottom-1/5 left-2/5 w-1 h-1 bg-purple-400/45 rounded-full animate-ping" style={{animationDelay: '5s'}} />
-        <div className="absolute top-3/5 left-4/5 w-0.5 h-0.5 bg-teal-400/50 rounded-full animate-ping" style={{animationDelay: '2s'}} />
-        <div className="absolute bottom-2/5 right-1/3 w-1.5 h-1.5 bg-cyan-400/30 rounded-full animate-ping" style={{animationDelay: '4s'}} />
-        <div className="absolute top-1/8 right-3/8 w-1 h-1 bg-indigo-400/35 rounded-full animate-ping" style={{animationDelay: '6s'}} />
-        
-        {/* Subtle geometric shapes */}
-        <div className="absolute top-1/3 right-1/4 w-32 h-32 border border-emerald-500/5 rotate-45 rounded-lg animate-float" style={{animationDelay: '8s'}} />
-        <div className="absolute bottom-1/3 left-1/3 w-24 h-24 border border-blue-500/5 rotate-12 rounded-full animate-float" style={{animationDelay: '10s'}} />
-        
-        {/* Radial gradient overlays for depth */}
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-radial from-transparent via-emerald-950/5 to-transparent" />
-        <div className="absolute bottom-0 right-0 w-full h-full bg-gradient-radial from-transparent via-blue-950/5 to-transparent" />
+        {/* Dark ambient depth */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-700/20 to-gray-800/30" />
+
+
       </div>
 
-      {/* --- ENHANCED NAVBAR --- */}
+      {/* --- ELEGANT NAVBAR --- */}
       <nav className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center max-w-7xl mx-auto z-20">
         <div className="flex items-center">
           <div className="flex flex-col leading-none">
@@ -187,122 +192,84 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Status indicator */}
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-emerald-500/30 rounded-full backdrop-blur-sm">
-          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
-          <span className="text-sm text-emerald-400 font-medium">LIVE</span>
+        {/* Professional status indicator */}
+        <div className="flex items-center gap-2 px-5 py-2.5 bg-slate-800/60 border border-slate-600/50 rounded-full backdrop-blur-lg">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+          <span className="text-sm text-slate-200 font-medium tracking-wide">LIVE</span>
         </div>
       </nav>
 
       {/* --- ENHANCED HERO SECTION --- */}
       <section className="relative z-10 flex flex-col items-center justify-center h-screen px-4 text-center">
         
-        {/* Premium Aesthetic Tag */}
-        <div 
-          className={`
-            relative group flex items-center justify-center gap-4 px-8 py-3 rounded-full 
-            border border-white/20 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl
-            text-gray-200 text-sm font-medium mb-12 transition-all duration-1000 transform
-            shadow-2xl shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:border-emerald-400/40
-            hover:scale-105 hover:bg-gradient-to-r hover:from-emerald-500/10 hover:via-blue-500/5 hover:to-purple-500/10
-            ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}
-          `}
-        >
-          {/* Background glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 via-blue-400/20 to-purple-400/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          
-          {/* Main content */}
-          <div className="relative flex items-center justify-center gap-3">
-            <div className="relative">
-              {/* Icon glow */}
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-blue-500 rounded-full blur-sm opacity-50 group-hover:opacity-75 transition-opacity" />
-              <div className="relative w-6 h-6 bg-gradient-to-br from-emerald-400 via-teal-400 to-blue-500 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                <TrendingUp size={14} className="text-black group-hover:scale-110 transition-transform" />
-              </div>
+        {/* Sophisticated Premium Tag */}
+        <div className="flex items-center justify-center gap-4 px-8 py-4 rounded-2xl border border-blue-500/30 bg-slate-800/60 backdrop-blur-xl text-white text-sm font-medium mb-8 hover:border-blue-400/50 hover:bg-slate-800/70 transition-all duration-300">
+          <div className="flex items-center justify-center gap-3">
+            <div className="w-6 h-6 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
+              <TrendingUp size={14} className="text-white" />
             </div>
-            <span className="whitespace-nowrap font-semibold tracking-wide text-white group-hover:text-emerald-100 transition-colors">
+            <span className="whitespace-nowrap font-semibold tracking-wide">
               Live Trading Simulation
             </span>
           </div>
           
-          {/* Animated divider */}
-          <div className="relative">
-            <div className="w-px h-5 bg-gradient-to-b from-transparent via-white/30 to-transparent flex-shrink-0" />
-            <div className="absolute inset-0 w-px bg-gradient-to-b from-emerald-400/50 via-blue-400/50 to-purple-400/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          </div>
+          <div className="w-px h-5 bg-gradient-to-b from-transparent via-gray-400 to-transparent" />
           
-          <div className="relative flex items-center gap-2">
-            <span className="text-emerald-400 font-bold whitespace-nowrap tracking-wide group-hover:text-emerald-300 transition-colors">
+          <div className="flex items-center gap-2">
+            <span className="text-white font-bold whitespace-nowrap tracking-wide">
               ₹1,00,000
             </span>
-            <span className="text-gray-400 font-medium text-xs uppercase tracking-widest group-hover:text-gray-300 transition-colors">
+            <span className="text-gray-300 font-medium text-xs uppercase tracking-widest">
               Capital
             </span>
           </div>
-          
-          {/* Subtle shine effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 rounded-full" />
         </div>
 
-        {/* Enhanced Main Heading with better gradients */}
-        <div className="space-y-4 mb-8">
-          <h1 
-            className={`
-              text-6xl md:text-8xl lg:text-9xl font-black tracking-tight transition-all duration-1000 delay-100 transform
-              ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}
-            `}
-          >
-            <span className="block text-transparent bg-clip-text bg-gradient-to-b from-white via-gray-200 to-gray-400">
-              FIC HANSRAJ
-            </span>
+        {/* Colorful Title Section */}
+        <div className="text-center mb-16 relative">
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tight leading-tight mb-6 text-transparent bg-clip-text bg-gradient-to-r from-slate-200 via-white to-slate-300">
+            FIC HANSRAJ
           </h1>
-          <h2 
-            className={`
-              text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight transition-all duration-1000 delay-200 transform
-              ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}
-            `}
-          >
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-blue-500 to-purple-500">
-              STOCK EXCHANGE
-            </span>
+          
+          <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-slate-200 to-blue-400 mb-8">
+            STOCK EXCHANGE
           </h2>
+          
+          {/* Professional accent elements */}
+          <div className="flex items-center justify-center gap-4 mt-8">
+            <div className="w-12 h-px bg-gradient-to-r from-transparent to-blue-400/40" />
+            <div className="w-1.5 h-1.5 bg-blue-400/60 rounded-full" />
+            <div className="w-24 h-px bg-blue-400/30" />
+            <div className="w-1 h-1 bg-slate-400/50 rounded-full" />
+            <div className="w-24 h-px bg-blue-400/30" />
+            <div className="w-1.5 h-1.5 bg-blue-400/60 rounded-full" />
+            <div className="w-12 h-px bg-gradient-to-l from-transparent to-blue-400/40" />
+          </div>
         </div>
 
         {/* Enhanced Subtext */}
-        <p 
-          className={`
-            text-gray-300 text-xl md:text-2xl max-w-4xl mx-auto mb-12 leading-relaxed transition-all duration-1000 delay-300 transform
-            ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}
-          `}
-        >
-          <span className="font-semibold text-white">Trade. Compete. Learn</span> — Experience real market dynamics in an intense 
+        <p className="text-gray-300 text-xl md:text-2xl max-w-4xl mx-auto mb-16 leading-relaxed text-center">
+          <span className="font-semibold text-blue-400">Trade. Compete. Learn</span> — Experience real market dynamics in an intense 
           8-round simulation with live prices, strategic decisions, and ₹1,00,000 virtual capital.
         </p>
 
-        {/* Enhanced Buttons with glassmorphism and animations */}
-        <div 
-          className={`
-            flex flex-col sm:flex-row items-center gap-6 transition-all duration-1000 delay-500 transform
-            ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}
-          `}
-        >
-          {/* Primary Button - Enhanced with gradient and effects */}
+        {/* Warm Inviting Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-12">
           <button 
             onClick={() => setModalOpen(true)}
-            className="group relative px-10 py-5 bg-gradient-to-r from-emerald-500 to-blue-600 text-white font-bold rounded-2xl overflow-hidden transition-all hover:scale-105 hover:shadow-2xl hover:shadow-emerald-500/25 active:scale-95 w-full sm:w-auto min-w-[250px]"
+            className="group relative px-10 py-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl backdrop-blur-xl border border-blue-500/40 hover:border-blue-400/60 transition-all duration-500 w-full sm:w-auto min-w-[280px] hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-600/20"
           >
-            <span className="relative z-10 flex items-center justify-center gap-3 text-lg">
-              <Zap size={20} />
+            <span className="flex items-center justify-center gap-3 text-lg relative z-10">
+              <Rocket size={20} className="group-hover:scale-110 transition-transform duration-300" />
               Enter Trading Arena
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
             </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
-            
-            {/* Shine effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+            {/* Professional glassmorphism overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-blue-400/0 group-hover:from-blue-500/15 group-hover:to-blue-400/10 rounded-2xl transition-all duration-500" />
+            {/* Subtle shimmer effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/0 to-transparent group-hover:via-white/10 rounded-2xl transition-all duration-700 transform group-hover:translate-x-full" />
           </button>
 
-          {/* Secondary Button - Enhanced glassmorphism */}
           <button 
             onClick={() => {
               const howItWorksSection = document.getElementById('how-it-works');
@@ -310,39 +277,35 @@ export default function Home() {
                 howItWorksSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }
             }}
-            className="group px-10 py-5 bg-white/5 border border-white/10 text-white font-semibold rounded-2xl hover:bg-white/10 hover:border-white/20 hover:shadow-lg transition-all active:scale-95 w-full sm:w-auto min-w-[250px] backdrop-blur-md"
+            className="group relative px-10 py-5 bg-gray-800/40 border border-gray-600/40 text-gray-200 font-semibold rounded-2xl backdrop-blur-xl hover:bg-gray-700/60 hover:border-gray-500/50 transition-all duration-500 w-full sm:w-auto min-w-[280px] hover:scale-[1.01] hover:shadow-lg hover:shadow-gray-700/30"
           >
-            <span className="flex items-center justify-center gap-3 text-lg">
-              <Target size={20} className="text-gray-400 group-hover:text-emerald-400 transition-colors" />
+            <span className="flex items-center justify-center gap-3 text-lg relative z-10">
+              <Target size={20} className="text-gray-400 group-hover:text-gray-200 transition-colors duration-300" />
               How It Works
-              <ChevronRight size={20} className="text-gray-400 group-hover:text-white transition-colors group-hover:translate-x-1" />
+              <ChevronRight size={20} className="text-gray-400 group-hover:text-gray-200 group-hover:translate-x-1 transition-all duration-300" />
             </span>
+            {/* Dark glassmorphism overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-gray-600/0 to-gray-700/0 group-hover:from-gray-600/20 group-hover:to-gray-700/15 rounded-2xl transition-all duration-500" />
           </button>
         </div>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <div className="flex flex-col items-center text-gray-400 hover:text-white transition-colors cursor-pointer">
-            <span className="text-sm mb-2 font-medium">Scroll to explore</span>
-            <ChevronRight size={20} className="rotate-90" />
-          </div>
-        </div>
+
       </section>
 
       {/* --- HOW IT WORKS SECTION --- */}
-      <section id="how-it-works" className="py-32 relative bg-gradient-to-b from-gray-950/50 to-black">
+      <section id="how-it-works" className="py-32 relative bg-gradient-to-b from-slate-900/50 to-gray-900">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Background effects for this section */}
-          <div className="absolute top-1/2 left-1/4 w-[400px] h-[400px] bg-gradient-to-r from-emerald-500/5 via-teal-500/3 to-transparent rounded-full blur-[100px] animate-float" />
-          <div className="absolute bottom-1/3 right-1/4 w-[300px] h-[300px] bg-gradient-to-l from-blue-500/5 via-indigo-500/3 to-transparent rounded-full blur-[80px] animate-float" style={{animationDelay: '2s'}} />
+          {/* Subtle depth layers */}
+          <div className="absolute top-1/4 left-1/6 w-[400px] h-[200px] bg-gradient-to-r from-slate-800/8 via-slate-700/4 to-transparent rounded-full blur-[100px]" />
+          <div className="absolute bottom-1/3 right-1/5 w-[300px] h-[300px] bg-gradient-to-l from-slate-700/6 via-slate-800/3 to-transparent rounded-full blur-[80px]" />
         </div>
 
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           {/* Section Header */}
           <div className="text-center mb-20">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-8">
-              <Target size={16} className="text-emerald-400" />
-              <span className="text-emerald-400 font-semibold text-sm uppercase tracking-wider">Game Mechanics</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-500/10 border border-slate-400/20 rounded-full mb-8 backdrop-blur-sm">
+              <Target size={16} className="text-slate-300" />
+              <span className="text-slate-300 font-semibold text-sm uppercase tracking-wider">Game Mechanics</span>
             </div>
             <h2 className="text-5xl md:text-6xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400">
               How the Game Works
@@ -366,104 +329,80 @@ export default function Home() {
                 
                 {/* Step 1 - Round Starts */}
                 <div className="relative group">
-                  <div className="relative bg-gradient-to-br from-gray-900/80 to-black/60 border border-gray-700/50 rounded-3xl p-8 text-center backdrop-blur-xl hover:border-emerald-400/40 transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl hover:shadow-emerald-500/20 overflow-hidden">
-                    {/* Background glow */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    
-                    {/* Number circle with enhanced design */}
-                    <div className="relative">
-                      <div className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity mx-auto" />
-                      <div className="relative w-20 h-20 bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 text-black font-black text-2xl shadow-2xl group-hover:scale-110 transition-transform duration-500">
-                        1
-                      </div>
+                  <div className="relative bg-slate-800/40 border border-slate-600/50 rounded-2xl p-8 text-center backdrop-blur-xl hover:border-slate-500/60 hover:bg-slate-800/60 transition-all duration-300">
+                    {/* Number circle */}
+                    <div className="w-16 h-16 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl flex items-center justify-center mx-auto mb-6 text-white font-bold text-xl">
+                      1
                     </div>
                     
-                    <h4 className="text-2xl font-bold text-white mb-4 group-hover:text-emerald-100 transition-colors">Round Starts</h4>
-                    <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
+                    <h4 className="text-xl font-bold text-white mb-3">Round Starts</h4>
+                    <p className="text-slate-400 leading-relaxed">
                       Round starts with 15-minute timer
                     </p>
                   </div>
                   
                   {/* Enhanced Arrow */}
                   <div className="hidden md:block absolute top-1/2 -right-3 transform -translate-y-1/2 z-10">
-                    <div className="w-6 h-6 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full flex items-center justify-center shadow-lg">
-                      <ChevronRight size={16} className="text-black" />
+                    <div className="w-6 h-6 bg-gradient-to-r from-slate-400 to-gray-400 rounded-full flex items-center justify-center shadow-lg">
+                      <ChevronRight size={16} className="text-white" />
                     </div>
                   </div>
                 </div>
 
                 {/* Step 2 - News Event */}
                 <div className="relative group">
-                  <div className="relative bg-gradient-to-br from-gray-900/80 to-black/60 border border-gray-700/50 rounded-3xl p-8 text-center backdrop-blur-xl hover:border-blue-400/40 transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-500/20 overflow-hidden">
-                    {/* Background glow */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    
-                    {/* Number circle with enhanced design */}
-                    <div className="relative">
-                      <div className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity mx-auto" />
-                      <div className="relative w-20 h-20 bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 text-black font-black text-2xl shadow-2xl group-hover:scale-110 transition-transform duration-500">
-                        2
-                      </div>
+                  <div className="relative bg-slate-800/40 border border-slate-600/50 rounded-2xl p-8 text-center backdrop-blur-xl hover:border-slate-500/60 hover:bg-slate-800/60 transition-all duration-300">
+                    {/* Number circle */}
+                    <div className="w-16 h-16 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl flex items-center justify-center mx-auto mb-6 text-white font-bold text-xl">
+                      2
                     </div>
                     
-                    <h4 className="text-2xl font-bold text-white mb-4 group-hover:text-blue-100 transition-colors">News Event</h4>
-                    <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
+                    <h4 className="text-xl font-bold text-white mb-3">News Event</h4>
+                    <p className="text-slate-400 leading-relaxed">
                       News event drops, prices react instantly
                     </p>
                   </div>
                   
                   {/* Enhanced Arrow */}
                   <div className="hidden md:block absolute top-1/2 -right-3 transform -translate-y-1/2 z-10">
-                    <div className="w-6 h-6 bg-gradient-to-r from-blue-400 to-indigo-400 rounded-full flex items-center justify-center shadow-lg">
-                      <ChevronRight size={16} className="text-black" />
+                    <div className="w-6 h-6 bg-gradient-to-r from-slate-400 to-gray-400 rounded-full flex items-center justify-center shadow-lg">
+                      <ChevronRight size={16} className="text-white" />
                     </div>
                   </div>
                 </div>
 
                 {/* Step 3 - Trade Decision */}
                 <div className="relative group">
-                  <div className="relative bg-gradient-to-br from-gray-900/80 to-black/60 border border-gray-700/50 rounded-3xl p-8 text-center backdrop-blur-xl hover:border-purple-400/40 transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/20 overflow-hidden">
-                    {/* Background glow */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    
-                    {/* Number circle with enhanced design */}
-                    <div className="relative">
-                      <div className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-purple-400 to-purple-500 rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity mx-auto" />
-                      <div className="relative w-20 h-20 bg-gradient-to-br from-purple-400 via-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 text-black font-black text-2xl shadow-2xl group-hover:scale-110 transition-transform duration-500">
-                        3
-                      </div>
+                  <div className="relative bg-slate-800/40 border border-slate-600/50 rounded-2xl p-8 text-center backdrop-blur-xl hover:border-slate-500/60 hover:bg-slate-800/60 transition-all duration-300">
+                    {/* Number circle */}
+                    <div className="w-16 h-16 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl flex items-center justify-center mx-auto mb-6 text-white font-bold text-xl">
+                      3
                     </div>
                     
-                    <h4 className="text-2xl font-bold text-white mb-4 group-hover:text-purple-100 transition-colors">Trade Decision</h4>
-                    <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
+                    <h4 className="text-xl font-bold text-white mb-3">Trade Decision</h4>
+                    <p className="text-slate-400 leading-relaxed">
                       You buy/sell stocks based on analysis
                     </p>
                   </div>
                   
                   {/* Enhanced Arrow */}
                   <div className="hidden md:block absolute top-1/2 -right-3 transform -translate-y-1/2 z-10">
-                    <div className="w-6 h-6 bg-gradient-to-r from-purple-400 to-violet-400 rounded-full flex items-center justify-center shadow-lg">
-                      <ChevronRight size={16} className="text-black" />
+                    <div className="w-6 h-6 bg-gradient-to-r from-slate-400 to-gray-400 rounded-full flex items-center justify-center shadow-lg">
+                      <ChevronRight size={16} className="text-white" />
                     </div>
                   </div>
                 </div>
 
                 {/* Step 4 - Round Ends */}
-                <div className="relative group">
-                  <div className="relative bg-gradient-to-br from-gray-900/80 to-black/60 border border-gray-700/50 rounded-3xl p-8 text-center backdrop-blur-xl hover:border-orange-400/40 transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl hover:shadow-orange-500/20 overflow-hidden">
-                    {/* Background glow */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    
-                    {/* Number circle with enhanced design */}
-                    <div className="relative">
-                      <div className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-orange-400 to-orange-500 rounded-full blur-md opacity-50 group-hover:opacity-75 transition-opacity mx-auto" />
-                      <div className="relative w-20 h-20 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-6 text-black font-black text-2xl shadow-2xl group-hover:scale-110 transition-transform duration-500">
-                        4
-                      </div>
+                <div className="relative">
+                  <div className="relative bg-slate-800/40 border border-slate-600/50 rounded-2xl p-8 text-center backdrop-blur-xl hover:border-slate-500/60 hover:bg-slate-800/60 transition-all duration-300">
+                    {/* Number circle */}
+                    <div className="w-16 h-16 bg-gradient-to-br from-slate-600 to-slate-700 rounded-xl flex items-center justify-center mx-auto mb-6 text-white font-bold text-xl">
+                      4
                     </div>
                     
-                    <h4 className="text-2xl font-bold text-white mb-4 group-hover:text-orange-100 transition-colors">Round Ends</h4>
-                    <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
+                    <h4 className="text-xl font-bold text-white mb-3">Round Ends</h4>
+                    <p className="text-slate-400 leading-relaxed">
                       Round ends, rankings update, repeat
                     </p>
                   </div>
@@ -472,7 +411,7 @@ export default function Home() {
               </div>
               
               {/* Connecting line for desktop */}
-              <div className="hidden md:block absolute top-1/2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-600/30 to-transparent transform -translate-y-1/2 -z-10" />
+              <div className="hidden md:block absolute top-1/2 left-0 right-0 h-px bg-slate-600/20 transform -translate-y-1/2 -z-10" />
             </div>
           </div>
 
@@ -480,34 +419,34 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             
             {/* Real-Time Prices */}
-            <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-3xl p-8 backdrop-blur-sm hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 hover:scale-105">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center mb-6">
-                <Activity size={24} className="text-black" />
+            <div className="bg-slate-800/30 border border-slate-600/40 rounded-2xl p-6 backdrop-blur-xl hover:border-slate-500/50 hover:bg-slate-700/40 transition-all duration-300">
+              <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl flex items-center justify-center mb-4">
+                <Activity size={20} className="text-white" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-4">Live Market Data</h3>
-              <p className="text-gray-400 leading-relaxed">
+              <h3 className="text-lg font-bold text-white mb-3">Live Market Data</h3>
+              <p className="text-slate-400 leading-relaxed text-sm">
                 Real stock prices that update every second, giving you authentic market experience with live BSE/NSE data.
               </p>
             </div>
 
             {/* News Events */}
-            <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-3xl p-8 backdrop-blur-sm hover:border-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 hover:scale-105">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mb-6">
-                <Zap size={24} className="text-black" />
+            <div className="bg-slate-800/30 border border-slate-600/40 rounded-2xl p-6 backdrop-blur-xl hover:border-slate-500/50 hover:bg-slate-700/40 transition-all duration-300">
+              <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
+                <Zap size={20} className="text-white" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-4">Dynamic News Events</h3>
-              <p className="text-gray-400 leading-relaxed">
+              <h3 className="text-lg font-bold text-white mb-3">Dynamic News Events</h3>
+              <p className="text-slate-400 leading-relaxed text-sm">
                 Strategic news releases each round that impact stock prices, testing your ability to react and adapt quickly.
               </p>
             </div>
 
             {/* Competition */}
-            <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-3xl p-8 backdrop-blur-sm hover:border-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 hover:scale-105">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl flex items-center justify-center mb-6">
-                <Users size={24} className="text-black" />
+            <div className="bg-slate-800/30 border border-slate-600/40 rounded-2xl p-6 backdrop-blur-xl hover:border-slate-500/50 hover:bg-slate-700/40 transition-all duration-300">
+              <div className="w-12 h-12 bg-gradient-to-br from-rose-500 to-rose-600 rounded-xl flex items-center justify-center mb-4">
+                <Users size={20} className="text-white" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-4">Competitive Rankings</h3>
-              <p className="text-gray-400 leading-relaxed">
+              <h3 className="text-lg font-bold text-white mb-3">Competitive Rankings</h3>
+              <p className="text-slate-400 leading-relaxed text-sm">
                 Live leaderboards track your performance against other players, with rankings updated after each round.
               </p>
             </div>
@@ -523,31 +462,31 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           {/* Stats Section */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-20">
-            <div className="flex flex-col items-center p-6 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all hover:scale-105 group">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Timer size={24} className="text-black" />
+            <div className="flex flex-col items-center p-6 bg-white/10 rounded-3xl border border-white/20 backdrop-blur-xl hover:bg-white/15 transition-all hover:scale-105 group">
+              <div className="w-12 h-12 bg-gradient-to-br from-violet-400 to-violet-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Timer size={24} className="text-white" />
               </div>
               <span className="text-5xl font-black text-white mb-2 bg-gradient-to-b from-white to-gray-300 bg-clip-text text-transparent">8</span>
               <span className="text-sm text-gray-400 uppercase tracking-wider font-semibold">Live Rounds</span>
             </div>
             
-            <div className="flex flex-col items-center p-6 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all hover:scale-105 group">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <BarChart3 size={24} className="text-black" />
+            <div className="flex flex-col items-center p-6 bg-white/10 rounded-3xl border border-white/20 backdrop-blur-xl hover:bg-white/15 transition-all hover:scale-105 group">
+              <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <BarChart3 size={24} className="text-white" />
               </div>
               <span className="text-5xl font-black text-white mb-2 bg-gradient-to-b from-white to-gray-300 bg-clip-text text-transparent">15min</span>
               <span className="text-sm text-gray-400 uppercase tracking-wider font-semibold">Per Round</span>
             </div>
             
-            <div className="flex flex-col items-center p-6 bg-white/5 rounded-3xl border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all hover:scale-105 group">
-              <div className="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Activity size={24} className="text-black" />
+            <div className="flex flex-col items-center p-6 bg-white/10 rounded-3xl border border-white/20 backdrop-blur-xl hover:bg-white/15 transition-all hover:scale-105 group">
+              <div className="w-12 h-12 bg-gradient-to-br from-rose-400 to-rose-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Activity size={24} className="text-white" />
               </div>
               <span className="text-5xl font-black text-white mb-2 flex items-center gap-3 bg-gradient-to-b from-white to-gray-300 bg-clip-text text-transparent">
                 Live
                 <span className="flex h-3 w-3 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-violet-400/30"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-violet-500"></span>
                 </span>
               </span>
               <span className="text-sm text-gray-400 uppercase tracking-wider font-semibold">Real-time Prices</span>
@@ -556,26 +495,26 @@ export default function Home() {
 
           {/* Section Header */}
           <div className="text-center mb-20">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full mb-6">
-              <Star size={16} className="text-emerald-400" />
-              <span className="text-emerald-400 font-semibold text-sm">PREMIUM EXPERIENCE</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-500/15 border border-violet-500/30 rounded-full mb-6 backdrop-blur-sm">
+              <Star size={16} className="text-violet-400" />
+              <span className="text-violet-400 font-semibold text-sm">PREMIUM EXPERIENCE</span>
             </div>
             <h2 className="text-5xl md:text-6xl font-black mb-8 text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400">
               What Makes Us Different?
             </h2>
             <p className="text-xl text-gray-300 leading-relaxed max-w-4xl mx-auto">
               A high-intensity, real-time stock market simulation that mirrors actual trading conditions with 
-              <span className="text-emerald-400 font-semibold"> live market data</span> and 
-              <span className="text-blue-400 font-semibold"> strategic challenges</span>.
+              <span className="text-violet-400 font-semibold"> live market data</span> and 
+              <span className="text-cyan-400 font-semibold"> strategic challenges</span>.
             </p>
           </div>
 
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {/* Feature 1 */}
-            <div className="group p-8 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-3xl backdrop-blur-sm hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 hover:scale-105">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Activity size={28} className="text-black" />
+            <div className="group p-8 bg-gradient-to-br from-white/15 to-white/5 border border-white/25 rounded-3xl backdrop-blur-2xl hover:border-violet-500/40 hover:shadow-2xl hover:shadow-violet-500/20 transition-all duration-500 hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-br from-violet-400 to-violet-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Activity size={28} className="text-white" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-4">Real-Time Data</h3>
               <p className="text-gray-400 leading-relaxed">
@@ -584,9 +523,9 @@ export default function Home() {
             </div>
 
             {/* Feature 2 */}
-            <div className="group p-8 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-3xl backdrop-blur-sm hover:border-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 hover:scale-105">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Users size={28} className="text-black" />
+            <div className="group p-8 bg-gradient-to-br from-white/15 to-white/5 border border-white/25 rounded-3xl backdrop-blur-2xl hover:border-cyan-500/40 hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500 hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Users size={28} className="text-white" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-4">Competitive Trading</h3>
               <p className="text-gray-400 leading-relaxed">
@@ -595,9 +534,9 @@ export default function Home() {
             </div>
 
             {/* Feature 3 */}
-            <div className="group p-8 bg-gradient-to-br from-white/5 to-transparent border border-white/10 rounded-3xl backdrop-blur-sm hover:border-purple-500/30 hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 hover:scale-105">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Shield size={28} className="text-black" />
+            <div className="group p-8 bg-gradient-to-br from-white/15 to-white/5 border border-white/25 rounded-3xl backdrop-blur-2xl hover:border-rose-500/40 hover:shadow-2xl hover:shadow-rose-500/20 transition-all duration-500 hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-br from-rose-400 to-rose-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Shield size={28} className="text-white" />
               </div>
               <h3 className="text-2xl font-bold text-white mb-4">Risk-Free Learning</h3>
               <p className="text-gray-400 leading-relaxed">
@@ -611,32 +550,32 @@ export default function Home() {
       {/* --- MODERN GLASSMORPHISM AUTH MODAL --- */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-xl flex items-center justify-center z-50 p-4 animate-fade-in">
-          {/* Modern modal background with enhanced glassmorphism */}
+          {/* Professional modal background */}
           <div className="relative w-full max-w-lg">
-            {/* Background glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/20 via-blue-500/20 to-purple-500/20 rounded-3xl blur-xl" />
+            {/* Professional blue glow effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/15 via-slate-600/10 to-blue-600/15 rounded-3xl blur-2xl" />
             
-            {/* Main modal container */}
-            <div className="relative bg-black/60 border border-white/10 rounded-3xl p-12 shadow-2xl shadow-emerald-500/20 backdrop-blur-2xl animate-scale-in overflow-hidden">
-              {/* Subtle background pattern */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-emerald-500/[0.02] rounded-3xl" />
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl" />
+            {/* Main modal container with professional glassmorphism */}
+            <div className="relative bg-slate-800/60 border border-slate-600/30 rounded-3xl p-12 shadow-2xl shadow-blue-600/20 backdrop-blur-3xl animate-scale-in overflow-hidden">
+              {/* Professional background pattern */}
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-700/5 via-transparent to-blue-600/5 rounded-3xl" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/8 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-slate-600/8 rounded-full blur-2xl" />
               
               {/* Content */}
               <div className="relative z-10">
-                {/* Header with enhanced design */}
+                {/* Professional header design */}
                 <div className="text-center mb-10">
                   <div className="relative inline-block mb-6">
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-blue-500 rounded-2xl blur-md opacity-50" />
-                    <div className="relative w-16 h-16 bg-gradient-to-br from-emerald-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto">
-                      <Shield size={28} className="text-black" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl blur-md opacity-40" />
+                    <div className="relative w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mx-auto">
+                      <Shield size={28} className="text-white" />
                     </div>
                   </div>
-                  <h2 className="text-4xl font-bold bg-gradient-to-r from-white via-gray-100 to-gray-300 bg-clip-text text-transparent mb-3">
+                  <h2 className="text-4xl font-bold text-white mb-3">
                     Welcome Back
                   </h2>
-                  <p className="text-gray-400/90 text-lg">
+                  <p className="text-slate-300 text-lg">
                     Sign in to access your trading dashboard
                   </p>
                 </div>
@@ -649,7 +588,7 @@ export default function Home() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="w-full px-6 py-4 bg-white/5 border border-white/10 focus:border-emerald-500/50 focus:bg-white/10 rounded-2xl text-white placeholder-gray-400 outline-none transition-all backdrop-blur-sm hover:border-white/20 focus:shadow-lg focus:shadow-emerald-500/10"
+                      className="w-full px-6 py-4 bg-slate-700/30 border border-slate-600/40 focus:border-blue-500/60 focus:bg-slate-700/50 rounded-2xl text-white placeholder-slate-400 outline-none transition-all backdrop-blur-xl hover:border-slate-500/50 focus:shadow-lg focus:shadow-blue-600/20"
                     />
                     <input
                       type="password"
@@ -657,35 +596,35 @@ export default function Home() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="w-full px-6 py-4 bg-white/5 border border-white/10 focus:border-emerald-500/50 focus:bg-white/10 rounded-2xl text-white placeholder-gray-400 outline-none transition-all backdrop-blur-sm hover:border-white/20 focus:shadow-lg focus:shadow-emerald-500/10"
+                      className="w-full px-6 py-4 bg-slate-700/30 border border-slate-600/40 focus:border-blue-500/60 focus:bg-slate-700/50 rounded-2xl text-white placeholder-slate-400 outline-none transition-all backdrop-blur-xl hover:border-slate-500/50 focus:shadow-lg focus:shadow-blue-600/20"
                     />
                   </div>
                   
                   <button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-400 hover:to-blue-500 text-white font-bold py-5 rounded-2xl transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-emerald-500/30 flex items-center justify-center gap-3 text-lg relative overflow-hidden group"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold py-5 rounded-2xl transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-blue-600/30 flex items-center justify-center gap-3 text-lg relative overflow-hidden group"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
-                    <Zap size={20} className="relative z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
+                    <Rocket size={20} className="relative z-10" />
                     <span className="relative z-10">Sign In</span>
                   </button>
                 </form>
 
                 {/* Contact Admin Note */}
-                <div className="mt-8 p-5 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-2xl backdrop-blur-sm">
-                  <p className="text-center text-blue-400 text-sm">
+                <div className="mt-8 p-5 bg-gradient-to-r from-blue-600/10 to-slate-600/10 border border-blue-500/25 rounded-2xl backdrop-blur-xl">
+                  <p className="text-center text-blue-300 text-sm">
                     <span className="font-medium">New User?</span> Contact admin to create your account
                   </p>
                 </div>
 
                 {/* Message */}
                 {message && (
-                  <div className={`mt-6 p-4 rounded-2xl border text-center font-medium backdrop-blur-sm ${
+                  <div className={`mt-6 p-4 rounded-2xl border text-center font-medium backdrop-blur-xl ${
                     message.includes("wait") 
-                      ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
+                      ? "bg-blue-500/15 border-blue-500/30 text-blue-300"
                       : message.includes("successful") || message.includes("Login successful")
-                      ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                      : "bg-red-500/10 border-red-500/20 text-red-400"
+                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
+                      : "bg-red-500/15 border-red-500/30 text-red-300"
                   }`}>
                     {message}
                   </div>
@@ -694,7 +633,7 @@ export default function Home() {
                 {/* Close button */}
                 <button
                   onClick={() => setModalOpen(false)}
-                  className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-gray-400 hover:text-white transition-all hover:rotate-90 hover:scale-110"
+                  className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center bg-slate-700/30 hover:bg-slate-600/50 border border-slate-600/30 rounded-full text-slate-400 hover:text-white transition-all hover:rotate-90 hover:scale-110"
                 >
                   <X size={18} />
                 </button>
@@ -722,7 +661,7 @@ export default function Home() {
                   href="https://www.facebook.com/share/1AHaboK5uF/" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="w-10 h-10 bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/30 rounded-lg flex items-center justify-center text-gray-400 hover:text-emerald-400 transition-all hover:scale-110"
+                  className="w-10 h-10 bg-white/10 hover:bg-violet-500/25 border border-white/20 hover:border-violet-500/40 rounded-lg flex items-center justify-center text-gray-400 hover:text-violet-400 transition-all hover:scale-110 backdrop-blur-sm"
                   aria-label="Visit our Facebook page"
                 >
                   <Facebook size={18} />
@@ -731,7 +670,7 @@ export default function Home() {
                   href="https://www.linkedin.com/company/the-finance-investment-cell-hansraj-college/" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="w-10 h-10 bg-white/5 hover:bg-blue-500/20 border border-white/10 hover:border-blue-500/30 rounded-lg flex items-center justify-center text-gray-400 hover:text-blue-400 transition-all hover:scale-110"
+                  className="w-10 h-10 bg-white/10 hover:bg-cyan-500/25 border border-white/20 hover:border-cyan-500/40 rounded-lg flex items-center justify-center text-gray-400 hover:text-cyan-400 transition-all hover:scale-110 backdrop-blur-sm"
                   aria-label="Visit our LinkedIn page"
                 >
                   <Linkedin size={18} />
@@ -740,7 +679,7 @@ export default function Home() {
                   href="https://www.instagram.com/fichansraj?igsh=Ym9teTF5MnRwYjM=" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="w-10 h-10 bg-white/5 hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/30 rounded-lg flex items-center justify-center text-gray-400 hover:text-purple-400 transition-all hover:scale-110"
+                  className="w-10 h-10 bg-white/10 hover:bg-rose-500/25 border border-white/20 hover:border-rose-500/40 rounded-lg flex items-center justify-center text-gray-400 hover:text-rose-400 transition-all hover:scale-110 backdrop-blur-sm"
                   aria-label="Visit our Instagram page"
                 >
                   <Instagram size={18} />
@@ -752,16 +691,16 @@ export default function Home() {
             <div className="space-y-6">
               <h3 className="text-xl font-semibold text-white">Quick Links</h3>
               <div className="space-y-3">
-                <a href="#" className="block text-gray-400 hover:text-emerald-400 transition-colors hover:translate-x-1 transform duration-200">
+                <a href="#" className="block text-gray-400 hover:text-violet-400 transition-colors hover:translate-x-1 transform duration-200">
                   How It Works
                 </a>
-                <a href="#" className="block text-gray-400 hover:text-emerald-400 transition-colors hover:translate-x-1 transform duration-200">
+                <a href="#" className="block text-gray-400 hover:text-violet-400 transition-colors hover:translate-x-1 transform duration-200">
                   Rules & Guidelines  
                 </a>
-                <a href="#" className="block text-gray-400 hover:text-emerald-400 transition-colors hover:translate-x-1 transform duration-200">
+                <a href="#" className="block text-gray-400 hover:text-violet-400 transition-colors hover:translate-x-1 transform duration-200">
                   FAQ
                 </a>
-                <a href="#" className="block text-gray-400 hover:text-emerald-400 transition-colors hover:translate-x-1 transform duration-200">
+                <a href="#" className="block text-gray-400 hover:text-violet-400 transition-colors hover:translate-x-1 transform duration-200">
                   Terms & Conditions
                 </a>
               </div>
@@ -772,20 +711,20 @@ export default function Home() {
               <h3 className="text-xl font-semibold text-white">Contact Us</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-gray-400">
-                  <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
-                    <Mail size={16} className="text-emerald-400" />
+                  <div className="w-8 h-8 bg-violet-500/15 rounded-lg flex items-center justify-center">
+                    <Mail size={16} className="text-violet-400" />
                   </div>
                   <span>fic.core2025@gmail.com</span>
                 </div>
                 <div className="flex items-center gap-3 text-gray-400">
-                  <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                    <Phone size={16} className="text-blue-400" />
+                  <div className="w-8 h-8 bg-cyan-500/15 rounded-lg flex items-center justify-center">
+                    <Phone size={16} className="text-cyan-400" />
                   </div>
                   <span>+91 80767 26998</span>
                 </div>
                 <div className="flex items-start gap-3 text-gray-400">
-                  <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center mt-1">
-                    <MapPin size={16} className="text-purple-400" />
+                  <div className="w-8 h-8 bg-rose-500/15 rounded-lg flex items-center justify-center mt-1">
+                    <MapPin size={16} className="text-rose-400" />
                   </div>
                   <span className="leading-relaxed">
                     Hansraj College, University<br />
@@ -803,10 +742,10 @@ export default function Home() {
               © 2025 Finance & Investment Cell, Hansraj College. All rights reserved.
             </p>
             <div className="flex items-center gap-6 text-sm">
-              <a href="#" className="text-gray-500 hover:text-emerald-400 transition-colors">
+              <a href="#" className="text-gray-500 hover:text-violet-400 transition-colors">
                 Privacy Policy
               </a>
-              <a href="#" className="text-gray-500 hover:text-emerald-400 transition-colors">
+              <a href="#" className="text-gray-500 hover:text-violet-400 transition-colors">
                 Support
               </a>
             </div>

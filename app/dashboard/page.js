@@ -749,7 +749,7 @@ export default function Dashboard() {
                       {news.severity || 'Breaking'}
                     </span>
                     <span className="text-xs text-gray-400">
-                      {news.newsTriggerTime ? new Date(news.newsTriggerTime).toLocaleTimeString() : 'Just now'}
+                      {news.newsTriggerTime ? new Date(news.newsTriggerTime).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : 'Just now'}
                     </span>
                   </div>
                   <p className="text-sm text-gray-200 leading-relaxed">
@@ -1009,7 +1009,10 @@ export default function Dashboard() {
               <div className="p-3 space-y-2 max-h-96 overflow-y-auto custom-scrollbar">
                 {Object.entries(stocks).map(([sym, data]) => {
                   const price = Number(data.price);
-                  const prevPrice = price * (1 + (Math.random() - 0.5) * 0.02); // Mock previous price for demo
+                  // Use deterministic price change based on symbol hash to prevent hydration mismatch
+                  const symbolHash = sym.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+                  const deterministic = (symbolHash % 100) / 50 - 1; // -1 to 1 range
+                  const prevPrice = price * (1 + deterministic * 0.02);
                   const change = price - prevPrice;
                   const changePercent = (change / prevPrice) * 100;
                   const isPositive = change >= 0;
@@ -1299,7 +1302,7 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500">Avg: ₹{avgPrice.toFixed(2)}/share</span>
                         <span className="text-gray-400">
-                          {new Date(t.timestamp).toLocaleTimeString()}
+                          {new Date(t.timestamp).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
                         </span>
                       </div>
                     </div>
